@@ -38,6 +38,5 @@ def clean_columns_df(data_df, percentage):
             if (nb_nan / len(col)) <= percentage :
                 feature_list+=[col_name]
     df1 = data_df[feature_list]
-    print(len(feature_list)/len(col_names))
     #df1.to_csv('./Worldbank_Replaced_Countries_Var30.csv')
     return(df1)

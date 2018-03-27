@@ -22,6 +22,5 @@ data_FAO_df['area'] = countries
 
 data_FAO_df.to_csv('FAOSTAT_Replaced_Countries.csv')
 
-print(data_FAO_df.area.unique())
 
 # Memory error à balle !

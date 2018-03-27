@@ -9,9 +9,7 @@ def variance_threshold(df, thresh):
     #print(list(df.columns.values))
     #print(len(list(df.columns.values)))
     # Columns that we want to keep afterwards
-    list_cols = ['area', 'year', 'SP.POP.TOTL']
-    df2 = df[list_cols]
-    df = df.drop(columns=['Unnamed: 0', 'area_code', 'area', 'year'])
+
 
     # Replacing values by mean
     df.fillna(df.mean(), inplace=True)
@@ -29,9 +27,6 @@ def variance_threshold(df, thresh):
     labels = [columns[x] for x in selector.get_support(indices=True)]
 
     imputed_df = pd.DataFrame(selector.fit_transform(imputed_array), columns=labels) #, columns = df.columns)
-    imputed_df.reset_index(drop=True)
-    df2.reset_index(drop=True)
+    final_df = imputed_df.reset_index(drop=True)
 
-    final_df = pd.concat([df2, imputed_df], axis = 1)
-    print(len(final_df.columns.values))
     return(final_df)
