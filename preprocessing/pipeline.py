@@ -14,6 +14,7 @@ def pipeline_single(df, mv = 0, dimredType = '', lag = 0, save = False, df_name 
     countries = df['area']
     years = df['year']
     found_pop = False
+    found_type = False
     if 'SP.POP.TOTL' in df.columns.values:
         pop = df['SP.POP.TOTL']
         found_pop = True
