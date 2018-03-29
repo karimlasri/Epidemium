@@ -306,16 +306,22 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
     elif model == "random_forest_4":
 
         means = []
-        for max_f in range(16, 26):
-            for min_samples_s in range(2, 21):
+        rows = []
+        header = ['']+[i for i in range(16, 26, 2)]
+        rows += [header]
+        for max_f in range(16, 26, 2):
+            row = [max_f]
+            for min_samples_s in range(2, 21, 2):
                     model = RandomForestRegressor(criterion='mae', max_depth=None, min_samples_split=min_samples_s,
                                                   min_samples_leaf=1, max_features=max_f, bootstrap=False)
                     scores = cross_val_score(model, X_train, Y_train, cv=5)
                     print(max_f, min_samples_s, scores.mean())
                     means += [[max_f, min_samples_s, scores.mean()]]
-        means.sort(key=lambda x: x[3], reverse=True)
+                    row+= [scores.mean()]
+            rows += [row]
+        means.sort(key=lambda x: x[2], reverse=True)
         print(means)
-        best_params = means[0][:3]
+        best_params = means[0][:2]
         print(means[0])
 
         model = RandomForestRegressor(criterion='mae', max_depth=None, min_samples_split=best_params[1],
@@ -323,6 +329,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
                                       bootstrap=False)
         model.fit(X_train, Y_train)
 
+        write_csv('random_forest_grid', rows)
         # for i in range(len(tr.feature_importances_)):
         #     print("{}".format(str(list(X.columns.values)[i])))
         #     print("{}".format(str(tr.feature_importances_[i])))
@@ -351,6 +358,13 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
     print("Mean Percentage of Error : %s" % rel_mae)
 
 
+def write_csv(name, rows):
+    with open(name + '.csv', 'wt') as csv_file:
+        writer = csv.writer(csv_file, delimiter=';')
+        for row in rows:
+            writer.writerow(row)
+
+
 dataframe = pd.read_csv('../datasets/final_datasets/ALL_MV30_VT_Merged.csv')
 
-predict_mortality(dataframe, 'random_forest_4', 'C16', 0.33)
+predict_mortality(dataframe, 'ridge_regression', 'C16', 0.33)
