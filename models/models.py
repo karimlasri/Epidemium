@@ -6,6 +6,7 @@ import sklearn
 import sklearn.cross_validation
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
+import random
 
 import matplotlib.pyplot as plt
 import csv
@@ -17,14 +18,20 @@ from sklearn.neighbors import KNeighborsRegressor
 
 from sklearn import tree
 
+from sklearn.ensemble import RandomForestRegressor
+
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint as sp_randint
+
+
 
 def predict_mortality(df, model, cancer_type, test_size, developing_countries=False):
 
-    if developing_countries:
-        #sélection des pays en voie de développement
-        countries_df = pd.read_csv('developping_countries.csv')
-        countries=countries_df['area']
-        df=df[df.area.isin(countries)]
+    # if developing_countries:
+    #     #sélection des pays en voie de développement
+    #     countries_df = pd.read_csv('developping_countries.csv')
+    #     countries=countries_df['area']
+    #     df=df[df.area.isin(countries)]
 
     df = df.dropna(subset = ['TOTAL_POP'], axis = 0)
 
@@ -33,7 +40,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
     df=df.drop('type', axis=1)
 
     #variable à prédire : mortalité relative
-    X=df.drop(columns = ['area', 'year', 'relative_mortality', 'TOTAL_POP'], axis=1)
+    X=df.drop(columns = ['area', 'year', 'relative_mortality', 'TOTAL_POP', 'Unnamed: 0'], axis=1)
     Y=df.relative_mortality
 
     #standardisation des variables d'entrée pour les modèles linéaires
@@ -215,6 +222,111 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
         model = KNeighborsRegressor(n_neighbors=best_k, weights=best_w)
         model.fit(X_train, Y_train)
 
+    elif model == "decision_tree":
+
+        means = []
+        for criterion in ['mse', 'friedman_mse', 'mae']:
+            for splitter in ['best', 'random']:
+                tr = tree.DecisionTreeRegressor(criterion=criterion, splitter=splitter)
+                scores = cross_val_score(tr, X_train, Y_train, cv=5)
+                means += [[criterion, splitter, scores.mean()]]
+        means.sort(key=lambda x: x[2], reverse=True)
+        best_criterion = means[0][0]
+        best_splitter = means[0][1]
+
+        print("best criterion %s" % best_criterion)
+        print("best splitter %s " % best_splitter)
+
+        model = tree.DecisionTreeRegressor(criterion=best_criterion, splitter=best_splitter)
+        model.fit(X_train, Y_train)
+
+    elif model == "random_forest":
+
+        means = []
+        for criterion in ['mse', 'mae']:
+            for n_estimators in range(10, 15):
+                rf = RandomForestRegressor(criterion=criterion, n_estimators=n_estimators)
+                scores = cross_val_score(rf, X_train, Y_train, cv=5)
+                means += [[criterion, n_estimators, scores.mean()]]
+        means.sort(key=lambda x: x[2], reverse=True)
+        best_criterion = means[0][0]
+        best_n_estimators = means[0][1]
+        print("best_criterion %s" % best_criterion)
+        print("best n_estimators %s " % best_n_estimators)
+
+        model = RandomForestRegressor(criterion=best_criterion, n_estimators=best_n_estimators)
+        model.fit(X_train, Y_train)
+
+    elif model == "random_forest_2":
+
+        rf = RandomForestRegressor()
+        # specify parameters and distributions to sample from
+        param_dist = {"max_depth": [3, None],
+                      "max_features": sp_randint(1, 11),
+                      "min_samples_split": sp_randint(2, 11),
+                      "min_samples_leaf": sp_randint(1, 11),
+                      "bootstrap": [True, False],
+                      "criterion": ["mae", "mse"]}
+
+        # run randomized search
+        n_iter_search = 20
+        model = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
+
+        model.fit(X_train, Y_train)
+
+    elif model == "random_forest_3":
+
+
+        n_iter_search = 10
+        means = []
+        for i in range(n_iter_search):
+            max_d = None
+            max_f = random.randint(16, 25)
+            min_samples_s = random.randint(2, 20)
+            min_samples_l = random.randint(1, 4)
+            bootstr = False
+
+        # run randomized search
+
+            model = RandomForestRegressor(criterion='mae', max_depth=max_d, min_samples_split=min_samples_s, min_samples_leaf=min_samples_l, max_features=max_f, bootstrap=bootstr)
+            scores = cross_val_score(model, X_train, Y_train, cv=5)
+            print(max_d, max_f, min_samples_s, min_samples_l, bootstr, scores.mean())
+            means += [[max_d, max_f, min_samples_s, min_samples_l, bootstr, scores.mean()]]
+
+        means.sort(key=lambda x : x[5], reverse = True)
+        print(means)
+        best_params = means[0][:5]
+        best_means = means[0][5]
+        print(means[0])
+
+        model = RandomForestRegressor(criterion='mae', max_depth=best_params[0], min_samples_split=best_params[2],
+                                      min_samples_leaf=best_params[3], max_features=best_params[1], bootstrap=best_params[4])
+        model.fit(X_train, Y_train)
+
+    elif model == "random_forest_4":
+
+        means = []
+        for max_f in range(16, 26):
+            for min_samples_s in range(2, 21):
+                    model = RandomForestRegressor(criterion='mae', max_depth=None, min_samples_split=min_samples_s,
+                                                  min_samples_leaf=1, max_features=max_f, bootstrap=False)
+                    scores = cross_val_score(model, X_train, Y_train, cv=5)
+                    print(max_f, min_samples_s, scores.mean())
+                    means += [[max_f, min_samples_s, scores.mean()]]
+        means.sort(key=lambda x: x[3], reverse=True)
+        print(means)
+        best_params = means[0][:3]
+        print(means[0])
+
+        model = RandomForestRegressor(criterion='mae', max_depth=None, min_samples_split=best_params[1],
+                                      min_samples_leaf=1, max_features=best_params[0],
+                                      bootstrap=False)
+        model.fit(X_train, Y_train)
+
+        # for i in range(len(tr.feature_importances_)):
+        #     print("{}".format(str(list(X.columns.values)[i])))
+        #     print("{}".format(str(tr.feature_importances_[i])))
+
     # coefficient de détermination
     print("Coefficient of Determination %s" % model.score(X_test, Y_test))
     # prédiction de la mortalité en volume à partir de la mortalité relative prédite par le modèle
@@ -241,4 +353,4 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
 
 dataframe = pd.read_csv('../datasets/final_datasets/ALL_MV30_VT_Merged.csv')
 
-predict_mortality(dataframe, 'knn', 'C16', 0.33)
+predict_mortality(dataframe, 'random_forest_4', 'C16', 0.33)
