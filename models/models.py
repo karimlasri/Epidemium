@@ -1,4 +1,5 @@
 import pandas as pd, numpy as np
+import os
 from IPython.display import display
 from IPython.display import Image
 import math
@@ -27,7 +28,10 @@ from sklearn.model_selection import GridSearchCV
 
 
 
-def predict_mortality(df, model_name, cancer_type, test_size, developing_countries=False):
+def predict_mortality(name, model_name, cancer_type, test_size, developing_countries=False):
+
+    PATH_datasets = '../datasets/final_datasets/'
+    df = pd.read_csv(os.path.join(PATH_datasets,name + ".csv"))
 
     # if developing_countries:
     #     #sélection des pays en voie de développement
@@ -442,9 +446,14 @@ def predict_mortality(df, model_name, cancer_type, test_size, developing_countri
     mean_mortality_test = np.mean(X_results['true_mortality'])
     rel_mae = mae_test / mean_mortality_test
     print("Mean Percentage of Error : %s" % rel_mae)
+    # Mean Deviation
+    mean = np.mean(X_results['true_mortality'])
+    md = np.mean(abs(X_results['true_mortality']-mean))
+    print("Mean deviation : %s" % md)
 
-    results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),'MSE' : mse_test,'RMSE' : rmse_test,'MAE' : mae_test,'MPE' : rel_mae}, index = [0])
-    results.to_csv(model_name + '_results.csv', index = False)
+    results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),
+                                    'MSE' : mse_test,'RMSE' : rmse_test,'MAE' : mae_test,'MPE' : rel_mae, 'MD' : md}, index = [0])
+    results.to_csv(model_name +'_' + name + '_results.csv', index = False)
 
 def write_csv(name, rows):
     with open(name + '.csv', 'wt') as csv_file:
@@ -465,6 +474,6 @@ def report(results, n_top=5):
             print("")
 
 
-dataframe = pd.read_csv('../datasets/final_datasets/ALL_MV30_VT_Merged.csv')
+name = 'ALL_MV50_PCA_Merged_PCA'
 
-predict_mortality(dataframe, 'ridge_regression', 'C16', 0.33)
+predict_mortality(name, 'ridge_regression', 'C16', 0.33)
