@@ -320,18 +320,21 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
         rf = RandomForestRegressor()
         # specify parameters and distributions to sample from
-        param_dist = {"max_depth": [3, None],
-                      "max_features": sp_randint(1, 11),
-                      "min_samples_split": sp_randint(2, 11),
-                      "min_samples_leaf": sp_randint(1, 11),
+        param_dist = {"max_depth": [None,1,3,5,10,15,20,30,40,50],
+                      "max_features": sp_randint(1, 100),
+                      "min_samples_split": sp_randint(2, 50),
+                      "min_samples_leaf": sp_randint(1, 50),
                       "bootstrap": [True, False],
                       "criterion": ["mae", "mse"]}
 
         # run randomized search
-        n_iter_search = 20
+        n_iter_search = 100
         model = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
 
         model.fit(X_train, Y_train)
+
+        best_params = model.best_params_
+        report(model.cv_results_, 5)
 
     elif model_name == "random_forest_3":
 
@@ -452,11 +455,24 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     print("Mean deviation : %s" % md)
 
     if model_name == 'ridge_regression' or model_name == 'lasso_regression':
-        print('yo')
         results = pd.DataFrame(data={'alpha': best_alpha, 'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
                                      'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MD': md},
                                index=[0])
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
+
+    elif model_name == 'knn':
+        results = pd.DataFrame(data={'k': best_k, 'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
+                                     'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MD': md},
+                               index=[0])
+        results.to_csv(model_name + '_' + name + '_results.csv', index=False)
+
+    elif model_name == 'random_forest_2':
+        results = pd.DataFrame(data={'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
+                                     'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MD': md},
+                               index=[0])
+        params = pd.DataFrame(data = best_params, index=[0])
+        results.to_csv(model_name + '_' + name + '_results.csv', index=False)
+        params.to_csv(model_name + '_' + name + '_params.csv', index= False)
 
     else:
         results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),
@@ -482,6 +498,6 @@ def report(results, n_top=5):
             print("")
 
 
-name = 'ALL_PCA_Merged_PCA'
+name = 'ALL_MV30_VT_Merged'
 
-predict_mortality(name, 'ridge_regression', 'C16', 0.33)
+predict_mortality(name, 'random_forest_2', 'C16', 0.33)

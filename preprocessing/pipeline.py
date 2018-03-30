@@ -68,8 +68,8 @@ def pipeline_single(df, mv = 0, dimredType = '', lag = 0, save = False, df_name 
         suffix += "_lag{}".format(lag)
 
     if save and df_name != '':
-        df_name = '.'.split(df_name)[0]
-        df.to_csv(df_name + suffix + '.csv', index = False)
+        #df_name = '.'.split(df_name)[0]
+        df.to_csv('../datasets/intermediate_datasets/' + df_name + suffix + '.csv', index = False)
 
     return(df)
 
@@ -127,8 +127,8 @@ def pipeline_multiple(mv_before = 0, mv_after = 0, dimred_type_before = '', dimr
     data_fao = pd.read_csv('../datasets/base_datasets/FAOSTAT.csv')
     data_mortality = pd.read_csv('../datasets/base_datasets/mortality_clean_aggregate.csv')
     # Cleaning datasets
-    wb_clean = clean_country_names(data_wb, 'WB')
-    fao_clean = clean_country_names(data_fao, 'FAO')
+    wb_clean = clean_country_names(data_wb, 'WB', True)
+    fao_clean = clean_country_names(data_fao, 'FAO', True)
     # Processing data before merging
     wb_processed = pipeline_single(wb_clean, mv_before, dimred_type_before, lag)
     fao_processed = pipeline_single(fao_clean, mv_before, dimred_type_before, lag)
@@ -140,7 +140,6 @@ def pipeline_multiple(mv_before = 0, mv_after = 0, dimred_type_before = '', dimr
     # Relative mortality
     df_final['relative_mortality'] = df_final['sum'] / df_final['TOTAL_POP']
     df_final = df_final.drop(columns=['sum'])
-
 
     if save == True:
         name = "ALL"
@@ -159,4 +158,54 @@ def pipeline_multiple(mv_before = 0, mv_after = 0, dimred_type_before = '', dimr
     return(df_final)
 
 
-pipeline_multiple(0, 0, 'VT', '', 0, True)
+def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred_type_after='', lag=0, save=False):
+    before_suffix = ''
+    if mv_before != 0:
+        before_suffix += '_MV{}'.format(str(mv_before))
+    if dimred_type_before != '':
+        before_suffix += '_{}'.format(str(dimred_type_before))
+    # # Reading data
+    # data_wb = pd.read_csv('../datasets/intermediate_datasets/WORLDBANK.csv')
+    # data_fao = pd.read_csv('../datasets/intermediate_datasets/FAOSTAT.csv')
+    data_mortality = pd.read_csv('../datasets/intermediate_datasets/mortality_clean_aggregate.csv')
+    # # Cleaning datasets
+    # wb_clean = clean_country_names(data_wb, 'WB')
+    # fao_clean = clean_country_names(data_fao, 'FAO')
+    # # Processing data before merging
+    # wb_processed = pipeline_single(wb_clean, mv_before, dimred_type_before, lag)
+    # fao_processed = pipeline_single(fao_clean, mv_before, dimred_type_before, lag)
+    wb_processed = pd.read_csv('../datasets/intermediate_datasets/WORLDBANK' + before_suffix + '.csv')
+    fao_processed = pd.read_csv('../datasets/intermediate_datasets/FAOSTAT' + before_suffix + '.csv')
+    wb_mortality = pd.merge(data_mortality, wb_processed, how='inner', on=['area', 'year'])
+    # Merging datasets
+    df_merged = pd.merge(wb_mortality, fao_processed, how='inner', on=['area', 'year'])
+    # Processing data after merge
+    df_final = pipeline_single(df_merged, mv_after, dimred_type_after, 0)
+    # Relative mortality
+    df_final['relative_mortality'] = df_final['sum'] / df_final['TOTAL_POP']
+    df_final = df_final.drop(columns=['sum'])
+
+    if save == True:
+        name = "ALL"
+        if mv_before != 0:
+            name += "_MV{}".format(str(mv_before))
+        if dimred_type_before != '':
+            name += "_" + dimred_type_before
+        if lag != 0:
+            name += "_lag{}".format(lag)
+        name += "_Merged"
+        if mv_after != 0:
+            name += "_MV{}".format(str(mv_after))
+        if dimred_type_after != '':
+            name += "_" + dimred_type_after
+        df_final.to_csv('../datasets/final_datasets/' + name + '.csv')
+    return (df_final)
+
+#pipeline_multiple(50, 0, 'VT', '', 0, True)
+
+# for i in range(5, 25, 2):
+#     pipeline_multiple_lag(50, 0, 'VT', '', i, True)
+data_wb = pd.read_csv('../datasets/clean_datasets/Worldbank_Replaced_Countries.csv')
+pipeline_single(data_wb, 30, 'VT', 0, True, 'Worldbank')
+data_fao = pd.read_csv('../datasets/clean_datasets/FAOSTAT_Replaced_Countries.csv')
+pipeline_single(data_fao, 30, 'VT', 0, True, 'FAO')
