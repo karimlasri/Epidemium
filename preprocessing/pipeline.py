@@ -159,4 +159,4 @@ def pipeline_multiple(mv_before = 0, mv_after = 0, dimred_type_before = '', dimr
     return(df_final)
 
 
-pipeline_multiple(30, 0, 'PCA', 'PCA', 7, True)
+pipeline_multiple(50, 0, 'VT', '', 0, True)

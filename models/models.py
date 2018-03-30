@@ -25,7 +25,7 @@ from scipy.stats import randint as sp_randint
 
 
 
-def predict_mortality(df, model, cancer_type, test_size, developing_countries=False):
+def predict_mortality(df, model_name, cancer_type, test_size, developing_countries=False):
 
     # if developing_countries:
     #     #sélection des pays en voie de développement
@@ -44,7 +44,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
     Y=df.relative_mortality
 
     #standardisation des variables d'entrée pour les modèles linéaires
-    if model in ["linear_regression", "ridge_regression", "lasso_regression"]:
+    if model_name in ["linear_regression", "ridge_regression", "lasso_regression"]:
         labels = X.columns
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
@@ -71,14 +71,14 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
     X_train=X_train.drop('year', axis=1)
 
 
-    if model=="linear_regression":
+    if model_name =="linear_regression":
         #pas d'hyperparamètre à déterminer
         #apprentissage du modèle
         model = linear_model.LinearRegression()
         model.fit(X_train, Y_train)
         print("Coefs : {}".format(list(zip(X_train.columns.values, model.coef_))))
 
-    elif model == "ridge_regression":
+    elif model_name == "ridge_regression":
 
         alphas = []
         train_scores = []
@@ -125,11 +125,12 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
             writer.writerow(train_scores)
             writer.writerow(scores)
 
+        print(best_alpha)
         model = linear_model.Ridge(alpha = best_alpha)
         model.fit(X_train, Y_train)
 
 
-    elif model == "lasso_regression":
+    elif model_name == "lasso_regression":
 
         alphas = []
         train_scores = []
@@ -206,7 +207,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
         model = linear_model.Lasso()
         model.fit(X_train, Y_train)
 
-    elif model == "knn":
+    elif model_name == "knn":
         # hyperparamètre : nombre k de plus proches voisins
         means = []
         for w in ['uniform', 'distance']:
@@ -222,7 +223,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
         model = KNeighborsRegressor(n_neighbors=best_k, weights=best_w)
         model.fit(X_train, Y_train)
 
-    elif model == "decision_tree":
+    elif model_name == "decision_tree":
 
         means = []
         for criterion in ['mse', 'friedman_mse', 'mae']:
@@ -240,7 +241,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
         model = tree.DecisionTreeRegressor(criterion=best_criterion, splitter=best_splitter)
         model.fit(X_train, Y_train)
 
-    elif model == "random_forest":
+    elif model_name == "random_forest":
 
         means = []
         for criterion in ['mse', 'mae']:
@@ -257,7 +258,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
         model = RandomForestRegressor(criterion=best_criterion, n_estimators=best_n_estimators)
         model.fit(X_train, Y_train)
 
-    elif model == "random_forest_2":
+    elif model_name == "random_forest_2":
 
         rf = RandomForestRegressor()
         # specify parameters and distributions to sample from
@@ -274,7 +275,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
 
         model.fit(X_train, Y_train)
 
-    elif model == "random_forest_3":
+    elif model_name == "random_forest_3":
 
 
         n_iter_search = 10
@@ -303,7 +304,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
                                       min_samples_leaf=best_params[3], max_features=best_params[1], bootstrap=best_params[4])
         model.fit(X_train, Y_train)
 
-    elif model == "random_forest_4":
+    elif model_name == "random_forest_4":
 
         means = []
         rows = []
@@ -357,6 +358,8 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
     rel_mae = mae_test / mean_mortality_test
     print("Mean Percentage of Error : %s" % rel_mae)
 
+    results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),'MSE' : mse_test,'RMSE' : rmse_test,'MAE' : mae_test,'MPE' : rel_mae}, index = [0])
+    results.to_csv(model_name + '_results.csv', header=False)
 
 def write_csv(name, rows):
     with open(name + '.csv', 'wt') as csv_file:
@@ -365,6 +368,6 @@ def write_csv(name, rows):
             writer.writerow(row)
 
 
-dataframe = pd.read_csv('../datasets/final_datasets/ALL_MV30_VT_Merged.csv')
+dataframe = pd.read_csv('../datasets/final_datasets/ALL_MV50_VT_Merged.csv')
 
 predict_mortality(dataframe, 'ridge_regression', 'C16', 0.33)
