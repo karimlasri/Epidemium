@@ -359,7 +359,7 @@ def predict_mortality(df, model_name, cancer_type, test_size, developing_countri
     print("Mean Percentage of Error : %s" % rel_mae)
 
     results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),'MSE' : mse_test,'RMSE' : rmse_test,'MAE' : mae_test,'MPE' : rel_mae}, index = [0])
-    results.to_csv(model_name + '_results.csv', header=False)
+    results.to_csv(model_name + '_results.csv', index = False)
 
 def write_csv(name, rows):
     with open(name + '.csv', 'wt') as csv_file:
