@@ -35,7 +35,7 @@ def clean_columns_df(data_df, percentage):
     for col_name in col_names:
             col = data_df[col_name]
             nb_nan = col.isnull().sum()
-            if (nb_nan / len(col)) <= percentage :
+            if (nb_nan / len(col)) <= percentage/100 :
                 feature_list+=[col_name]
     df1 = data_df[feature_list]
     #df1.to_csv('./Worldbank_Replaced_Countries_Var30.csv')
