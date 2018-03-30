@@ -15,6 +15,11 @@ def pipeline_single(df, mv = 0, dimredType = '', lag = 0, save = False, df_name 
     years = df['year']
     found_pop = False
     found_type = False
+    found_sum = False
+    if 'sum' in df.columns.values:
+        sum = df['sum']
+        found_sum = True
+        df = df.drop(columns=['sum'])
     if 'SP.POP.TOTL' in df.columns.values:
         pop = df['SP.POP.TOTL']
         found_pop = True
@@ -51,6 +56,9 @@ def pipeline_single(df, mv = 0, dimredType = '', lag = 0, save = False, df_name 
         df.insert(0, 'TOTAL_POP', pop)
     df.insert(0, 'year', years)
     df.insert(0, 'area', countries)
+
+    if found_sum:
+        df.insert(0, 'sum', sum)
 
     if found_type:
         df.insert(0, 'type', type)
