@@ -320,15 +320,15 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
         rf = RandomForestRegressor()
         # specify parameters and distributions to sample from
-        param_dist = {"max_depth": [None,10,15,20,30,40,50],
+        param_dist = {"max_depth": [None,15,20,30,40,50],
                       "max_features": sp_randint(50, 100),
-                      "min_samples_split": sp_randint(5, 25),
-                      "min_samples_leaf": sp_randint(1, 15),
+                      "min_samples_split": sp_randint(5, 20),
+                      "min_samples_leaf": sp_randint(1, 5),
                       "bootstrap": [True, False],
                       "criterion": ["mae", "mse"]}
 
         # run randomized search
-        n_iter_search = 100
+        n_iter_search = 5
         model = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
 
         model.fit(X_train, Y_train)
@@ -452,8 +452,8 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     # Mean Absolute Percentage of Error
     mean_mortality_test = np.mean(X_results['true_mortality'])
     rel_mae = mae_test / mean_mortality_test
-    mape_test = np.mean(np.divide(abs(X_results['true_mortality'] - X_results['predicted_mortality']), X_results['true_mortality']))
-    print("Mean Absolute Percentage of Error : %s" % rel_mae)
+    mape_test = np.mean(np.divide(abs(X_results['true_mortality'] - X_results['predicted_mortality']), max(1, X_results['true_mortality'])))
+    print("Mean Absolute Percentage of Error : %s" % mape_test)
     # Mean Deviation
     mean = np.mean(X_results['true_mortality'])
     md = np.mean(abs(X_results['true_mortality']-mean))
