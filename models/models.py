@@ -452,12 +452,23 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     # Mean Absolute Percentage of Error
     mean_mortality_test = np.mean(X_results['true_mortality'])
     rel_mae = mae_test / mean_mortality_test
-    mape_test = np.mean(np.divide(abs(X_results['true_mortality'] - X_results['predicted_mortality']), np.maximum(np.ones(len(X_results['true_mortality'])), X_results['true_mortality'])))
+    absdiff = abs(X_results['true_mortality'] - X_results['predicted_mortality'])
+    max_one_true = np.maximum(np.ones(len(X_results['true_mortality'])), X_results['true_mortality'])
+    division = np.divide(absdiff, max_one_true)
+    print(absdiff)
+    print(max_one_true)
+    div = list(zip(list(X_results['area']), list(X_results['year']), list(division),list(absdiff), list(max_one_true)))
+    div.sort(key = lambda x:x[2])
+    print(div)
+    mape_test = np.mean(division)
     print("Mean Absolute Percentage of Error : %s" % mape_test)
     # Mean Deviation
     mean = np.mean(X_results['true_mortality'])
     md = np.mean(abs(X_results['true_mortality']-mean))
     print("Mean deviation : %s" % md)
+    plt.plot(X_results['predicted_mortality'][0:100], np.array([i for i in range(100)]))
+    plt.plot(X_results['true_mortality'][0:100], np.array([i for i in range(100)]))
+    plt.show()
 
     if model_name == 'ridge_regression' or model_name == 'lasso_regression':
         results = pd.DataFrame(data={'alpha': best_alpha, 'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
@@ -503,6 +514,6 @@ def report(results, n_top=5):
             print("")
 
 
-name = 'ALL_MV50_VT_Merged'
+name = 'ALL_MV50_PCA_Merged_PCA'
 
-predict_mortality(name, 'random_forest_2', 'C16', 0.33)
+predict_mortality(name, 'knn', 'C16', 0.33)
