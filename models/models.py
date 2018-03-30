@@ -452,7 +452,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     # Mean Absolute Percentage of Error
     mean_mortality_test = np.mean(X_results['true_mortality'])
     rel_mae = mae_test / mean_mortality_test
-    mape_test = np.mean(np.divide(abs(X_results['true_mortality'] - X_results['predicted_mortality']), max(1, X_results['true_mortality'])))
+    mape_test = np.mean(np.divide(abs(X_results['true_mortality'] - X_results['predicted_mortality']), np.maximum(np.ones(len(X_results['true_mortality'])), X_results['true_mortality'])))
     print("Mean Absolute Percentage of Error : %s" % mape_test)
     # Mean Deviation
     mean = np.mean(X_results['true_mortality'])
