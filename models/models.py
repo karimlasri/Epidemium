@@ -320,10 +320,10 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
         rf = RandomForestRegressor()
         # specify parameters and distributions to sample from
-        param_dist = {"max_depth": [None,1,3,5,10,15,20,30,40,50],
-                      "max_features": sp_randint(1, 100),
-                      "min_samples_split": sp_randint(2, 50),
-                      "min_samples_leaf": sp_randint(1, 50),
+        param_dist = {"max_depth": [None,10,15,20,30,40,50],
+                      "max_features": sp_randint(50, 100),
+                      "min_samples_split": sp_randint(5, 25),
+                      "min_samples_leaf": sp_randint(1, 15),
                       "bootstrap": [True, False],
                       "criterion": ["mae", "mse"]}
 
@@ -445,10 +445,15 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     # Mean Average Error
     mae_test = np.mean(abs(X_results['true_mortality'] - X_results['predicted_mortality']))
     print("Mean Average Error : %s" % mae_test)
-    # Relative Mean Average Error
+    # Relative Average Error
     mean_mortality_test = np.mean(X_results['true_mortality'])
     rel_mae = mae_test / mean_mortality_test
-    print("Mean Percentage of Error : %s" % rel_mae)
+    print("Relative Average Error : %s" % rel_mae)
+    # Mean Absolute Percentage of Error
+    mean_mortality_test = np.mean(X_results['true_mortality'])
+    rel_mae = mae_test / mean_mortality_test
+    mape_test = np.mean(np.divide(abs(X_results['true_mortality'] - X_results['predicted_mortality']), X_results['true_mortality']))
+    print("Mean Absolute Percentage of Error : %s" % rel_mae)
     # Mean Deviation
     mean = np.mean(X_results['true_mortality'])
     md = np.mean(abs(X_results['true_mortality']-mean))
@@ -498,6 +503,6 @@ def report(results, n_top=5):
             print("")
 
 
-name = 'ALL_MV30_VT_Merged'
+name = 'ALL_MV50_VT_Merged'
 
 predict_mortality(name, 'random_forest_2', 'C16', 0.33)
