@@ -451,9 +451,17 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     md = np.mean(abs(X_results['true_mortality']-mean))
     print("Mean deviation : %s" % md)
 
-    results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),
+    if model_name == 'ridge_regression' or model_name == 'lasso_regression':
+        print('yo')
+        results = pd.DataFrame(data={'alpha': best_alpha, 'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
+                                     'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MD': md},
+                               index=[0])
+        results.to_csv(model_name + '_' + name + '_results.csv', index=False)
+
+    else:
+        results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),
                                     'MSE' : mse_test,'RMSE' : rmse_test,'MAE' : mae_test,'MPE' : rel_mae, 'MD' : md}, index = [0])
-    results.to_csv(model_name +'_' + name + '_results.csv', index = False)
+        results.to_csv(model_name +'_' + name + '_results.csv', index = False)
 
 def write_csv(name, rows):
     with open(name + '.csv', 'wt') as csv_file:
@@ -474,6 +482,6 @@ def report(results, n_top=5):
             print("")
 
 
-name = 'ALL_MV50_PCA_Merged_PCA'
+name = 'ALL_PCA_Merged_PCA'
 
 predict_mortality(name, 'ridge_regression', 'C16', 0.33)
