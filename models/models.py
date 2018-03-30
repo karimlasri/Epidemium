@@ -21,6 +21,9 @@ from sklearn import tree
 from sklearn.ensemble import RandomForestRegressor
 
 from sklearn.model_selection import RandomizedSearchCV
+
+from sklearn.model_selection import GridSearchCV
+
 from scipy.stats import randint as sp_randint
 
 
@@ -230,6 +233,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
                 tr = tree.DecisionTreeRegressor(criterion=criterion, splitter=splitter)
                 scores = cross_val_score(tr, X_train, Y_train, cv=5)
                 means += [[criterion, splitter, scores.mean()]]
+                print([criterion, splitter, scores.mean()])
         means.sort(key=lambda x: x[2], reverse=True)
         best_criterion = means[0][0]
         best_splitter = means[0][1]
@@ -238,6 +242,77 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
         print("best splitter %s " % best_splitter)
 
         model = tree.DecisionTreeRegressor(criterion=best_criterion, splitter=best_splitter)
+        model.fit(X_train, Y_train)
+
+
+    elif model == "decision_tree_2":
+
+        tr = tree.DecisionTreeRegressor(criterion="mae")
+
+        # use a full grid over all parameters
+        param_grid = {"max_depth": [3, None],
+                      "max_features": [1, 3, 10],
+                      "min_samples_split": [2, 3, 10],
+                      "min_samples_leaf": [1, 3, 10],
+                      "splitter":["best", "random"]}
+
+        # run grid search
+        model = GridSearchCV(tr, param_grid=param_grid, scoring="neg_mean_absolute_error", refit="neg_mean_absolute_error")
+        model.fit(X_train, Y_train)
+
+        report(model.cv_results_)
+
+    elif model == "decision_tree_3":
+
+        tr = tree.DecisionTreeRegressor(criterion="mae")
+
+        # use a full grid over all parameters
+        param_dist = {"max_depth": [3, None],
+                      "max_features": sp_randint(1, 11),
+                      "min_samples_split": sp_randint(2, 11),
+                      "min_samples_leaf": sp_randint(1, 11),
+                      "splitter":["best", "random"]}
+
+        # run grid search
+        n_iter_search=30
+        model = RandomizedSearchCV(tr, param_distributions=param_dist, n_iter=n_iter_search, scoring="neg_mean_absolute_error")
+        model.fit(X_train, Y_train)
+
+        report(model.cv_results_)
+
+    elif model == "decision_tree_4":
+
+        tr = tree.DecisionTreeRegressor(criterion="mae")
+
+        # use a full grid over all parameters
+        param_dist = {"max_features": sp_randint(200, 500),
+                      "min_samples_split": sp_randint(20, 70),
+                      "min_samples_leaf": sp_randint(1, 14),
+                      "splitter":["best", "random"]}
+
+        # run grid search
+        n_iter_search=50
+        model = RandomizedSearchCV(tr, param_distributions=param_dist, n_iter=n_iter_search)
+        model.fit(X_train, Y_train)
+
+        report(model.cv_results_)
+
+    elif model == "decision_tree_5":
+
+        means = []
+        for splitter in ['best', 'random']:
+            for max_feature in [1, 3, 10]:
+                for min_samples_s in [2, 3, 10]:
+                    for min_samples_l in [1, 3, 10]:
+                        tr = tree.DecisionTreeRegressor(criterion="mae", splitter=splitter, max_features=max_feature, min_samples_split=min_samples_s, min_samples_leaf=min_samples_l)
+                        scores = cross_val_score(tr, X_train, Y_train, cv=5)
+                        means += [[scores.mean(), splitter, max_feature, min_samples_s, min_samples_l]]
+                        print([scores.mean(), splitter, max_feature, min_samples_s, min_samples_l])
+        means.sort(key=lambda x: x[0], reverse=True)
+        print(means)
+        best_parameters=means[0]
+
+        model = tree.DecisionTreeRegressor(criterion="mae", splitter=best_parameters[1], max_features=best_parameters[2], min_samples_split=best_parameters[3], min_samples_leaf=best_parameters[4])
         model.fit(X_train, Y_train)
 
     elif model == "random_forest":
@@ -270,7 +345,7 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
 
         # run randomized search
         n_iter_search = 20
-        model = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
+        model = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search, )
 
         model.fit(X_train, Y_train)
 
@@ -329,10 +404,42 @@ def predict_mortality(df, model, cancer_type, test_size, developing_countries=Fa
                                       bootstrap=False)
         model.fit(X_train, Y_train)
 
-        write_csv('random_forest_grid', rows)
+        #write_csv('random_forest_grid', rows)
         # for i in range(len(tr.feature_importances_)):
         #     print("{}".format(str(list(X.columns.values)[i])))
         #     print("{}".format(str(tr.feature_importances_[i])))
+
+    elif model == "random_forest_5":
+
+        means = []
+        rows = []
+        header = ['']+[i for i in range(25, 50, 5)]
+        rows += [header]
+        for n_estimators in range(25, 50 , 5):
+            row = [n_estimators]
+            model = RandomForestRegressor(n_estimators=n_estimators, criterion='mae', max_depth=None, min_samples_split=4,
+                                          min_samples_leaf=1, max_features=20, bootstrap=False)
+            scores = cross_val_score(model, X_train, Y_train, cv=5)
+            print(n_estimators, scores.mean())
+            means += [[n_estimators, scores.mean()]]
+            row+= [scores.mean()]
+            rows += [row]
+        means.sort(key=lambda x: x[1], reverse=True)
+        print(means)
+        print(means[0][0])
+
+        model = RandomForestRegressor(n_estimators=means[0][0], criterion='mae', max_depth=None, min_samples_split=4,
+                                      min_samples_leaf=1, max_features=20,
+                                      bootstrap=False)
+        model.fit(X_train, Y_train)
+
+        write_csv('random_forest_grid_n_estimators', rows)
+
+    elif model == "random_forest_6":
+
+        model = RandomForestRegressor(n_estimators=25, criterion='mae', min_samples_split=4, bootstrap=False, max_features=200)
+        model.fit(X_train, Y_train)
+
 
     # coefficient de détermination
     print("Coefficient of Determination %s" % model.score(X_test, Y_test))
@@ -364,7 +471,19 @@ def write_csv(name, rows):
         for row in rows:
             writer.writerow(row)
 
+# 3 meilleurs résulats cross validation
+def report(results, n_top=3):
+    for i in range(1, n_top + 1):
+        candidates = np.flatnonzero(results['rank_test_score'] == i)
+        for candidate in candidates:
+            print("Model with rank: {0}".format(i))
+            print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
+                  results['mean_test_score'][candidate],
+                  results['std_test_score'][candidate]))
+            print("Parameters: {0}".format(results['params'][candidate]))
+            print("")
+
 
 dataframe = pd.read_csv('../datasets/final_datasets/ALL_MV30_VT_Merged.csv')
 
-predict_mortality(dataframe, 'ridge_regression', 'C16', 0.33)
+predict_mortality(dataframe, 'random_forest_6', 'C16', 0.33)
