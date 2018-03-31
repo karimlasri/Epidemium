@@ -430,51 +430,54 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         model = RandomForestRegressor(n_estimators=25, criterion='mae', min_samples_split=4, bootstrap=False, max_features=200)
         model.fit(X_train, Y_train)
 
-    # coefficient de détermination
-    print("Coefficient of Determination %s" % model.score(X_test, Y_test))
-    # prédiction de la mortalité en volume à partir de la mortalité relative prédite par le modèle
-    Y_predicted = model.predict(X_test)
-    X_results['predicted_relative_mortality'] = Y_predicted
-    X_results['relative_mortality'] = Y_test
-    X_results['predicted_mortality'] = X_results['predicted_relative_mortality'] * X_results['TOTAL_POP']
-    X_results['predicted_mortality'] = X_results['predicted_mortality'].round()
-    X_results['true_mortality'] = X_results['relative_mortality'] * X_results['TOTAL_POP']
-    X_values['true_mortality'] = Y_train * X_values['TOTAL_POP']
-    # Mean Square Error
-    mse_test = np.mean((X_results['true_mortality'] - X_results['predicted_mortality']) ** 2)
-    print("Mean Square Error : %s" % mse_test)
-    # Root Mean Square Error
-    rmse_test = math.sqrt(mse_test)
-    print("Root Mean Square Error : %s" % rmse_test)
-    # Mean Average Error
-    mae_test = np.mean(abs(X_results['true_mortality'] - X_results['predicted_mortality']))
-    print("Mean Average Error : %s" % mae_test)
-    # Relative Average Error
-    mean_mortality_test = np.mean(X_results['true_mortality'])
-    rel_mae = mae_test / mean_mortality_test
-    print("Relative Average Error : %s" % rel_mae)
-    # Mean Absolute Percentage of Error
-    mean_mortality_test = np.mean(X_results['true_mortality'])
-    rel_mae = mae_test / mean_mortality_test
-    absdiff = abs(X_results['true_mortality'] - X_results['predicted_mortality'])
-    max_one_true = np.maximum(np.ones(len(X_results['true_mortality'])), X_results['true_mortality'])
-    division = np.divide(absdiff, max_one_true)
-    print(absdiff)
-    print(max_one_true)
-    div = list(zip(list(X_results['area']), list(X_results['year']), list(division),list(absdiff), list(max_one_true)))
-    div.sort(key = lambda x:x[2])
+    # # coefficient de détermination
+    # print("Coefficient of Determination %s" % model.score(X_test, Y_test))
+    # # prédiction de la mortalité en volume à partir de la mortalité relative prédite par le modèle
+    # Y_predicted = model.predict(X_test)
+    # X_results['predicted_relative_mortality'] = Y_predicted
+    # X_results['relative_mortality'] = Y_test
+    # X_results['predicted_mortality'] = X_results['predicted_relative_mortality'] * X_results['TOTAL_POP']
+    # X_results['predicted_mortality'] = X_results['predicted_mortality'].round()
+    # X_results['true_mortality'] = X_results['relative_mortality'] * X_results['TOTAL_POP']
+    # X_values['true_mortality'] = Y_train * X_values['TOTAL_POP']
+    # # Mean Square Error
+    # mse_test = np.mean((X_results['true_mortality'] - X_results['predicted_mortality']) ** 2)
+    # print("Mean Square Error : %s" % mse_test)
+    # # Root Mean Square Error
+    # rmse_test = math.sqrt(mse_test)
+    # print("Root Mean Square Error : %s" % rmse_test)
+    # # Mean Average Error
+    # mae_test = np.mean(abs(X_results['true_mortality'] - X_results['predicted_mortality']))
+    # print("Mean Average Error : %s" % mae_test)
+    # # Relative Average Error
+    # mean_mortality_test = np.mean(X_results['true_mortality'])
+    # rel_mae = mae_test / mean_mortality_test
+    # print("Relative Average Error : %s" % rel_mae)
+    # # Mean Absolute Percentage of Error
+    # mean_mortality_test = np.mean(X_results['true_mortality'])
+    # rel_mae = mae_test / mean_mortality_test
+    # absdiff = abs(X_results['true_mortality'] - X_results['predicted_mortality'])
+    # max_one_true = np.maximum(np.ones(len(X_results['true_mortality'])), X_results['true_mortality'])
+    # division = np.divide(absdiff, max_one_true)
+    # print(absdiff)
+    # print(max_one_true)
+    # div = list(zip(list(X_results['area']), list(X_results['year']), list(division),list(absdiff), list(max_one_true)))
+    # div.sort(key = lambda x:x[2])
+    #
+    #
+    # print(div)
+    # div.sort(key = lambda x : (x[0], x[1]))
+    # div = [('Country', 'year', 'APE', 'AE', 'GT')] + div
+    # write_csv('../plots/evolution_per_country', div)
+    # mape_test = np.mean(division)
+    # print("Mean Absolute Percentage of Error : %s" % mape_test)
+    # # Mean Deviation
+    # mean = np.mean(X_results['true_mortality'])
+    # md = np.mean(abs(X_results['true_mortality']-mean))
+    # print("Mean deviation : %s" % md)
 
+    mets = metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values)
 
-    print(div)
-    div.sort(key = lambda x : (x[0], x[1]))
-    div = [('Country', 'year', 'APE', 'AE', 'GT')] + div
-    write_csv('../plots/evolution_per_country', div)
-    mape_test = np.mean(division)
-    print("Mean Absolute Percentage of Error : %s" % mape_test)
-    # Mean Deviation
-    mean = np.mean(X_results['true_mortality'])
-    md = np.mean(abs(X_results['true_mortality']-mean))
-    print("Mean deviation : %s" % md)
     plt.plot(np.array([i for i in range(100)]), X_results['predicted_mortality'][0:100])
     plt.plot(np.array([i for i in range(100)]), X_results['true_mortality'][0:100])
     plt.savefig('../plots/predictions_fit.png')
@@ -516,14 +519,16 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
 
     if model_name == 'ridge_regression' or model_name == 'lasso_regression':
-        results = pd.DataFrame(data={'alpha': best_alpha, 'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
-                                     'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MD': md},
+
+        mets['alpha'] = best_alpha
+        results = pd.DataFrame(data=mets,
                                index=[0])
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
 
     elif model_name == 'knn':
-        results = pd.DataFrame(data={'k': best_k, 'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
-                                     'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test,'MAPE':mape_test, 'MPE': rel_mae, 'MD': md},
+
+        mets['k'] = best_k
+        results = pd.DataFrame(data=mets,
                                index=[0])
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
 
@@ -536,8 +541,8 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
             params = top5[i]
             rf = RandomForestRegressor(**params)
             rf.fit(X_train, Y_train)
-            results_temp = pd.DataFrame(data={'R2_train': rf.score(X_train, Y_train), 'R2_test': rf.score(X_test, Y_test),
-                                         'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MAPE': mape_test, 'MD': md},
+            scores = metrics(rf,X_test, Y_test, X_train, Y_train, X_results, X_values)
+            results_temp = pd.DataFrame(data=scores,
                                    index=[0])
             params_temp = pd.DataFrame(data = params, index=[0])
             results = results.append(results_temp)
@@ -545,9 +550,9 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
         parameters.to_csv(model_name + '_' + name + '_params.csv', index= False)
 
+
     else:
-        results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),
-                                    'MSE' : mse_test,'RMSE' : rmse_test,'MAE' : mae_test,'MPE' : rel_mae, 'MD' : md}, index = [0])
+        results = pd.DataFrame(data = mets, index = [0])
         results.to_csv(model_name +'_' + name + '_results.csv', index = False)
 
 def write_csv(name, rows):
@@ -593,12 +598,75 @@ def remove_outliers(df):
     df.drop(df.index[indexes], inplace = True, axis=0)
     return df
 
+
+def metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values):
+    dic = {}
+
+    # R2
+    R2_train = model.score(X_train, Y_train)
+    R2_test = model.score(X_test, Y_test)
+    dic['R2_test'] = R2_test
+    dic['R2_train'] = R2_train
+
+    print("R2_test %s" % R2_test)
+    print("R2_train %s" % R2_train)
+
+    # prédiction de la mortalité en volume à partir de la mortalité relative prédite par le modèle
+    Y_predicted = model.predict(X_test)
+    X_results['predicted_relative_mortality'] = Y_predicted
+    X_results['relative_mortality'] = Y_test
+    X_results['predicted_mortality'] = X_results['predicted_relative_mortality'] * X_results['TOTAL_POP']
+    X_results['predicted_mortality'] = X_results['predicted_mortality'].round()
+    X_results['true_mortality'] = X_results['relative_mortality'] * X_results['TOTAL_POP']
+    X_values['true_mortality'] = Y_train * X_values['TOTAL_POP']
+
+    # Mean Square Error
+    mse_test = np.mean((X_results['true_mortality'] - X_results['predicted_mortality']) ** 2)
+    dic['MSE'] = mse_test
+    print("Mean Square Error : %s" % mse_test)
+
+    # Root Mean Square Error
+    rmse_test = math.sqrt(mse_test)
+    dic['RMSE'] = rmse_test
+    print("Root Mean Square Error : %s" % rmse_test)
+
+    # Mean Average Error
+    mae_test = np.mean(abs(X_results['true_mortality'] - X_results['predicted_mortality']))
+    dic['MAE'] = mae_test
+    print("Mean Average Error : %s" % mae_test)
+
+    # Relative Average Error
+    mean_mortality_test = np.mean(X_results['true_mortality'])
+    rel_mae = mae_test / mean_mortality_test
+    dic['MPE'] = rel_mae
+    print("Relative Average Error : %s" % rel_mae)
+
+    # Mean Absolute Percentage of Error
+    absdiff = abs(X_results['true_mortality'] - X_results['predicted_mortality'])
+    max_one_true = np.maximum(np.ones(len(X_results['true_mortality'])), X_results['true_mortality'])
+    division = np.divide(absdiff, max_one_true)
+    div = list(zip(list(X_results['area']), list(X_results['year']), list(division), list(absdiff), list(max_one_true)))
+    div.sort(key=lambda x: x[2])
+    div.sort(key=lambda x: (x[0], x[1]))
+    div = [('Country', 'year', 'APE', 'AE', 'GT')] + div
+    write_csv('../plots/evolution_per_country', div)
+    mape_test = np.mean(division)
+    dic['MAPE'] = mape_test
+    print("Mean Absolute Percentage of Error : %s" % mape_test)
+    # Mean Deviation
+    mean = np.mean(X_results['true_mortality'])
+    md = np.mean(abs(X_results['true_mortality'] - mean))
+    dic['MD'] = md
+    print("Mean deviation : %s" % md)
+
+    return dic
+
 name1 = 'ALL_MV30_PCA_Merged_PCA'
 name2 = 'ALL_MV50_PCA_Merged_PCA'
 name3 = 'ALL_MV30_VT_Merged'
 name4 = 'ALL_MV50_VT_Merged'
 
-predict_mortality(name1, 'random_forest_2', 'C16', 0.33)
 predict_mortality(name2, 'random_forest_2', 'C16', 0.33)
+# predict_mortality(name2, 'random_forest_2', 'C16', 0.33)
 # predict_mortality(name3, 'random_forest_2', 'C16', 0.33)
 # predict_mortality(name4, 'random_forest_2', 'C16', 0.33)
