@@ -242,17 +242,14 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     elif model_name == "grid_random_forest":
 
         rf = RandomForestRegressor()
-        # specify parameters and distributions to sample from
-        param_dist = {"max_depth": [None,15,20,30,40,50],
-                      "max_features": sp_randint(1, 50),
-                      "min_samples_split": sp_randint(5, 20),
-                      "min_samples_leaf": sp_randint(1, 5),
+        param_grid = {"max_depth": [None,15,20,30,40,50],
+                      "max_features": [10, 20, 30, 50],
+                      "min_samples_split": [5, 10, 20],
+                      "min_samples_leaf": [1, 2, 3, 4, 5],
                       "bootstrap": [True, False],
                       "criterion": ["mae", "mse"]}
 
-        # run randomized search
-        n_iter_search = 50
-        model = GridSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
+        model = GridSearchCV(rf, param_grid=param_grid)
 
         model.fit(X_train, Y_train)
 
