@@ -40,7 +40,7 @@ def add_row_pred(df, dico, country, n_pred):
                 df.loc[len(df) - n_pred + i, key] = np.nan
 
 
-def predict(data, p, year_pred, n_pred):
+def predict(data, p, year_pred, n_pred, name):
     # data = dataframe with features to predict
     # p = depth of data to make time serie prediction
     # year_pred = first year of prediction
@@ -74,9 +74,10 @@ def predict(data, p, year_pred, n_pred):
 
         add_row_pred(final_results, predictions, country, n_pred)
 
-    final_results.to_csv('time_serie_prediction2.csv', index=False)
+    final_results.to_csv(name + 'time_serie_prediction2.csv', index=False)
     return (final_results)
 
 data = pd.read_csv("/Users/titou/Desktop/Centrale/Option OSY/Projet/Epidemium/datasets/final_datasets/ALL_MV30_VT_Merged.csv")
-
-a = predict(data,15,2011,2)
+data2 = pd.read_csv("/Users/titou/Desktop/Centrale/Option OSY/Projet/Epidemium/datasets/final_datasets/ALL_MV50_VT_Merged.csv")
+a = predict(data,15,2011,2,"30")
+b = predict(data2,15,2011,2, "50")

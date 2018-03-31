@@ -176,6 +176,11 @@ def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred
     # fao_processed = pipeline_single(fao_clean, mv_before, dimred_type_before, lag)
     wb_processed = pd.read_csv('../datasets/intermediate_datasets/WORLDBANK' + before_suffix + '.csv')
     fao_processed = pd.read_csv('../datasets/intermediate_datasets/FAOSTAT' + before_suffix + '.csv')
+
+    if lag != 0:
+        wb_processed['year'] = wb_processed['year'] + lag
+        fao_processed['year'] = fao_processed['year'] + lag
+
     wb_mortality = pd.merge(data_mortality, wb_processed, how='inner', on=['area', 'year'])
     # Merging datasets
     df_merged = pd.merge(wb_mortality, fao_processed, how='inner', on=['area', 'year'])

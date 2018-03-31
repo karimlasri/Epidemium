@@ -323,20 +323,21 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         rf = RandomForestRegressor()
         # specify parameters and distributions to sample from
         param_dist = {"max_depth": [None,15,20,30,40,50],
-                      "max_features": sp_randint(50, 100),
+                      "max_features": sp_randint(1, 50),
                       "min_samples_split": sp_randint(5, 20),
                       "min_samples_leaf": sp_randint(1, 5),
                       "bootstrap": [True, False],
                       "criterion": ["mae", "mse"]}
 
         # run randomized search
-        n_iter_search = 5
+        n_iter_search = 50
         model = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
 
         model.fit(X_train, Y_train)
 
         best_params = model.best_params_
         report(model.cv_results_, 5)
+        top5 = report_export(model.cv_results_, 5)
 
     elif model_name == "random_forest_3":
 
@@ -462,6 +463,8 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     print(max_one_true)
     div = list(zip(list(X_results['area']), list(X_results['year']), list(division),list(absdiff), list(max_one_true)))
     div.sort(key = lambda x:x[2])
+
+
     print(div)
     div.sort(key = lambda x : (x[0], x[1]))
     div = [('Country', 'year', 'APE', 'AE', 'GT')] + div
@@ -520,17 +523,27 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
     elif model_name == 'knn':
         results = pd.DataFrame(data={'k': best_k, 'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
-                                     'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MD': md},
+                                     'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test,'MAPE':mape_test, 'MPE': rel_mae, 'MD': md},
                                index=[0])
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
 
     elif model_name == 'random_forest_2':
-        results = pd.DataFrame(data={'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
-                                     'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MD': md},
-                               index=[0])
-        params = pd.DataFrame(data = best_params, index=[0])
+
+        results = pd.DataFrame(columns= ['R2_train', 'R2_test', 'MSE', 'RMSE', 'MAE', 'MPE', 'MAPE', 'MD'])
+        parameters = pd.DataFrame(columns= ['max_depth','max_features', 'min_samples_split', 'min_samples_leaf','bootstrap','criterion'])
+
+        for i in range(1,6):
+            params = top5[i]
+            rf = RandomForestRegressor(**params)
+            rf.fit(X_train, Y_train)
+            results_temp = pd.DataFrame(data={'R2_train': rf.score(X_train, Y_train), 'R2_test': rf.score(X_test, Y_test),
+                                         'MSE': mse_test, 'RMSE': rmse_test, 'MAE': mae_test, 'MPE': rel_mae, 'MAPE': mape_test, 'MD': md},
+                                   index=[0])
+            params_temp = pd.DataFrame(data = params, index=[0])
+            results = results.append(results_temp)
+            parameters = parameters.append(params_temp)
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
-        params.to_csv(model_name + '_' + name + '_params.csv', index= False)
+        parameters.to_csv(model_name + '_' + name + '_params.csv', index= False)
 
     else:
         results = pd.DataFrame(data = { 'R2_train' : model.score(X_train, Y_train), 'R2_test' : model.score(X_test, Y_test),
@@ -555,6 +568,16 @@ def report(results, n_top=5):
             print("Parameters: {0}".format(results['params'][candidate]))
             print("")
 
+def report_export(results, n_top = 5):
+    res = {}
+    for i in range(1, n_top + 1):
+        candidates = np.flatnonzero(results['rank_test_score'] == i)
+        for candidate in candidates:
+            rank = i
+            parameters = results['params'][candidate]
+            res[rank] = parameters
+    return res
+
 
 def remove_outliers(df):
     indexes = []
@@ -570,6 +593,12 @@ def remove_outliers(df):
     df.drop(df.index[indexes], inplace = True, axis=0)
     return df
 
-name = 'ALL_MV30_VT_Merged'
+name1 = 'ALL_MV30_PCA_Merged_PCA'
+name2 = 'ALL_MV50_PCA_Merged_PCA'
+name3 = 'ALL_MV30_VT_Merged'
+name4 = 'ALL_MV50_VT_Merged'
 
-predict_mortality(name, 'random_forest_2', 'C16', 0.33)
+predict_mortality(name1, 'random_forest_2', 'C16', 0.33)
+predict_mortality(name2, 'random_forest_2', 'C16', 0.33)
+# predict_mortality(name3, 'random_forest_2', 'C16', 0.33)
+# predict_mortality(name4, 'random_forest_2', 'C16', 0.33)
