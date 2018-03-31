@@ -5,10 +5,11 @@ from preprocessing.dimensions_reduction.variance_threshold import *
 
 
 def pipeline_single(df, mv = 0, dimredType = '', lag = 0, save = False, df_name = ''):
+    # Whole pipeline for a single dataset
     suffix = ''
     if mv != 0:
         df = clean_columns_df(df, mv)
-        suffix += "_{}".format(str(mv))
+        suffix += "_MV{}".format(str(mv))
 
     # Choose which column to keep before dimensions reduction
     countries = df['area']
@@ -50,7 +51,7 @@ def pipeline_single(df, mv = 0, dimredType = '', lag = 0, save = False, df_name 
     elif dimredType == 'VT':
         threshold = 0.015 * (1 - .8)
         df = variance_threshold(df, threshold)
-        suffix += "_Var"
+        suffix += "_VT"
 
     if found_pop:
         df.insert(0, 'TOTAL_POP', pop)
@@ -75,6 +76,7 @@ def pipeline_single(df, mv = 0, dimredType = '', lag = 0, save = False, df_name 
 
 
 def clean_country_names(df, type, save = False):
+    # Cleans country names for base datasets
     if type == 'FAO':
         countries_dict = {'Bolivia (Plurinational State of)': 'Bolivia',
                           'Venezuela (Bolivarian Republic of)': 'Venezuela'}
@@ -83,10 +85,6 @@ def clean_country_names(df, type, save = False):
         data_FAO_df = df
 
         countries = data_FAO_df['area']
-
-        # for i in range(len(countries)):
-        #     if countries[i] in countries_dict.keys():
-        #         countries[i] = countries_dict[countries[i]]
 
         for idx, row in data_FAO_df.iterrows():
             if row['area'] in countries_dict.keys():
@@ -122,6 +120,7 @@ def clean_country_names(df, type, save = False):
 
 
 def pipeline_multiple(mv_before = 0, mv_after = 0, dimred_type_before = '', dimred_type_after = '', lag = 0, save = False):
+    # The whole pipeline from all base datasets
     # Reading data
     data_wb = pd.read_csv('../datasets/base_datasets/WORLDBANK.csv')
     data_fao = pd.read_csv('../datasets/base_datasets/FAOSTAT.csv')
@@ -159,29 +158,23 @@ def pipeline_multiple(mv_before = 0, mv_after = 0, dimred_type_before = '', dimr
 
 
 def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred_type_after='', lag=0, save=False):
+    # Multiple pipeline that generates dataset with lag
     before_suffix = ''
     if mv_before != 0:
         before_suffix += '_MV{}'.format(str(mv_before))
     if dimred_type_before != '':
         before_suffix += '_{}'.format(str(dimred_type_before))
-    # # Reading data
-    # data_wb = pd.read_csv('../datasets/intermediate_datasets/WORLDBANK.csv')
-    # data_fao = pd.read_csv('../datasets/intermediate_datasets/FAOSTAT.csv')
-    data_mortality = pd.read_csv('../datasets/intermediate_datasets/mortality_clean_aggregate.csv')
-    # # Cleaning datasets
-    # wb_clean = clean_country_names(data_wb, 'WB')
-    # fao_clean = clean_country_names(data_fao, 'FAO')
-    # # Processing data before merging
-    # wb_processed = pipeline_single(wb_clean, mv_before, dimred_type_before, lag)
-    # fao_processed = pipeline_single(fao_clean, mv_before, dimred_type_before, lag)
-    wb_processed = pd.read_csv('../datasets/intermediate_datasets/WORLDBANK' + before_suffix + '.csv')
+
+    data_mortality = pd.read_csv('../datasets/base_datasets/mortality_clean_aggregate.csv')
+    wb_processed = pd.read_csv('../datasets/intermediate_datasets/Worldbank' + before_suffix + '.csv')
     fao_processed = pd.read_csv('../datasets/intermediate_datasets/FAOSTAT' + before_suffix + '.csv')
 
     if lag != 0:
         wb_processed['year'] = wb_processed['year'] + lag
         fao_processed['year'] = fao_processed['year'] + lag
 
-    wb_mortality = pd.merge(data_mortality, wb_processed, how='inner', on=['area', 'year'])
+    wb_mortality = pd.merge(data_mortality, wb_processed, how='right', on=['area', 'year'])
+    print(wb_mortality.shape)
     # Merging datasets
     df_merged = pd.merge(wb_mortality, fao_processed, how='inner', on=['area', 'year'])
     # Processing data after merge
@@ -205,12 +198,3 @@ def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred
             name += "_" + dimred_type_after
         df_final.to_csv('../datasets/final_datasets/' + name + '.csv')
     return (df_final)
-
-#pipeline_multiple(50, 0, 'VT', '', 0, True)
-
-# for i in range(5, 25, 2):
-#     pipeline_multiple_lag(50, 0, 'VT', '', i, True)
-data_wb = pd.read_csv('../datasets/clean_datasets/Worldbank_Replaced_Countries.csv')
-pipeline_single(data_wb, 30, 'VT', 0, True, 'Worldbank')
-data_fao = pd.read_csv('../datasets/clean_datasets/FAOSTAT_Replaced_Countries.csv')
-pipeline_single(data_fao, 30, 'VT', 0, True, 'FAO')

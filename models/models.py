@@ -1,54 +1,43 @@
 import pandas as pd, numpy as np
 import os
-from IPython.display import display
-from IPython.display import Image
 import math
 import sklearn
 import sklearn.cross_validation
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 import random
-
 import matplotlib.pyplot as plt
 import csv
-
-from sklearn.linear_model import LinearRegression
 from sklearn import linear_model
-
 from sklearn.neighbors import KNeighborsRegressor
-
 from sklearn import tree
-
 from sklearn.ensemble import RandomForestRegressor
-
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint as sp_randint
-
 from sklearn.model_selection import GridSearchCV
 
-from scipy.interpolate import spline
 
-
-
-def predict_mortality(name, model_name, cancer_type, test_size, developing_countries=False):
+def predict_mortality(name, model_name, cancer_type, test_size, developing_countries=False, lag=0):
+    # Whole pipeline to predict mortality given the model, and name of dataset to use
 
     PATH_datasets = '../datasets/final_datasets/'
     df = pd.read_csv(os.path.join(PATH_datasets,name + ".csv"))
-    # if developing_countries:
-    #     #sélection des pays en voie de développement
-    #     countries_df = pd.read_csv('developping_countries.csv')
-    #     countries=countries_df['area']
-    #     df=df[df.area.isin(countries)]
 
     df = df.dropna(subset = ['TOTAL_POP'], axis = 0)
 
-    #sélection du type de cancer
+    # sélection du type de cancer
     df=df[df.type == cancer_type]
     df=df.drop('type', axis=1)
+    # Suppression des valeurs absurdes
     df = remove_outliers(df)
-    #variable à prédire : mortalité relative
-    X=df.drop(columns = ['area', 'year', 'relative_mortality', 'TOTAL_POP', 'Unnamed: 0'], axis=1)
-    Y=df.relative_mortality
+    # variable à prédire : mortalité relative
+    if lag != 0:
+        X_lag, X, Y = lag_X_Y(df)
+    else:
+        X=df.drop(columns = ['area', 'year', 'relative_mortality', 'TOTAL_POP', 'Unnamed: 0'], axis=1)
+        Y=df.relative_mortality
+
+
 
     #standardisation des variables d'entrée pour les modèles linéaires
     if model_name in ["linear_regression", "ridge_regression", "lasso_regression"]:
@@ -446,20 +435,34 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
             dico[country] = [(year, true_mor)]
         else:
             dico[country] += [(year, true_mor)]
-    for i in range(len(X_values)):
+
+    X_other = X_lag[['area', 'year', 'TOTAL_POP']]
+    X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
+    Y_lag = model.predict(X_lag)
+    X_lag['area'] = X_other['area']
+    X_lag['year'] = X_other['year']
+    X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
+    dicolag = {}
+    for i in range(len(X_lag)):
         country = X_values.iloc[i]['area']
         year = int(X_values.iloc[i]['year'])
-        true_mor = X_values.iloc[i]['true_mortality']
-        if country not in dico.keys():
-            dico[country] = [(year, true_mor)]
+        true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
+        if country not in dicolag.keys():
+            dicolag[country] = [(year, true_mor)]
         else:
-            dico[country] += [(year, true_mor)]
+            dicolag[country] += [(year, true_mor)]
+
     for k, v in dico.items():
         if len(v) > 1 :
             v.sort(key = lambda x : x[0])
         years = [year for year, _ in v]
         mors = [mor for _, mor in v]
-        plt.scatter(years, mors)
+        plt.scatter(years, mors, c='b')
+        if k in dicolag.keys():
+            v_lag = dicolag[k]
+            years_lag = [year for year, _ in v_lag]
+            mors_lag = [mor for _, mor in v_lag]
+            plt.scatter(years_lag, mors_lag, c='r')
         # if len(years)>3:
         #     x_new = np.linspace(years[0], years[len(years)-1], 300)
         #     # print(years)
@@ -556,6 +559,7 @@ def remove_outliers(df):
 
 
 def metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values):
+    # Computes main metrics for considered model
     dic = {}
 
     # R2
@@ -617,12 +621,10 @@ def metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values):
 
     return dic
 
-name1 = 'ALL_MV30_PCA_Merged_PCA'
-name2 = 'ALL_MV50_PCA_Merged_PCA'
-name3 = 'ALL_MV30_VT_Merged'
-name4 = 'ALL_MV50_VT_Merged'
-
-predict_mortality(name1, 'random_forest_2', 'C16', 0.33)
-# predict_mortality(name2, 'random_forest_2', 'C16', 0.33)
-predict_mortality(name3, 'random_forest_2', 'C16', 0.33)
-predict_mortality(name4, 'random_forest_2', 'C16', 0.33)
+def lag_X_Y(df):
+    X_lag = df.loc[df['relative_mortality'] == 0]
+    X = df.loc[df['relative_mortality'] != 0]
+    X = X.drop(columns=['area', 'year', 'relative_mortality', 'TOTAL_POP', 'Unnamed: 0'], axis=1)
+    X_lag = X_lag.drop(columns=['relative_mortality', 'Unnamed: 0'], axis=1)
+    Y = df.loc[df['relative_mortality'] != 0].relative_mortality
+    return X_lag, X, Y
