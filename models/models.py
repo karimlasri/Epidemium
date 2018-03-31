@@ -238,76 +238,29 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         model = tree.DecisionTreeRegressor(criterion="mae", splitter=best_parameters[1], max_features=best_parameters[2], min_samples_split=best_parameters[3], min_samples_leaf=best_parameters[4])
         model.fit(X_train, Y_train)
 
-    elif model_name == "decision_tree_2":
 
-        tr = tree.DecisionTreeRegressor(criterion="mae")
+    elif model_name == "grid_random_forest":
 
-        # use a full grid over all parameters
-        param_grid = {"max_depth": [3, None],
-                      "max_features": [1, 3, 10],
-                      "min_samples_split": [2, 3, 10],
-                      "min_samples_leaf": [1, 3, 10],
-                      "splitter":["best", "random"]}
+        rf = RandomForestRegressor()
+        # specify parameters and distributions to sample from
+        param_dist = {"max_depth": [None,15,20,30,40,50],
+                      "max_features": sp_randint(1, 50),
+                      "min_samples_split": sp_randint(5, 20),
+                      "min_samples_leaf": sp_randint(1, 5),
+                      "bootstrap": [True, False],
+                      "criterion": ["mae", "mse"]}
 
-        # run grid search
-        model = GridSearchCV(tr, param_grid=param_grid)
+        # run randomized search
+        n_iter_search = 50
+        model = GridSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
+
         model.fit(X_train, Y_train)
 
-        report(model.cv_results_)
+        best_params = model.best_params_
+        report(model.cv_results_, 5)
+        top5 = report_export(model.cv_results_, 5)
 
-    elif model_name == "decision_tree_3":
-
-        tr = tree.DecisionTreeRegressor(criterion="mae")
-
-        # use a full grid over all parameters
-        param_dist = {"max_depth": [3, None],
-                      "max_features": sp_randint(1, 11),
-                      "min_samples_split": sp_randint(2, 11),
-                      "min_samples_leaf": sp_randint(1, 11),
-                      "splitter":["best", "random"]}
-
-        # run grid search
-        n_iter_search=30
-        model = RandomizedSearchCV(tr, param_distributions=param_dist, n_iter=n_iter_search)
-        model.fit(X_train, Y_train)
-
-        report(model.cv_results_)
-
-    elif model_name == "decision_tree_4":
-
-        tr = tree.DecisionTreeRegressor(criterion="mae")
-
-        # use a full grid over all parameters
-        param_dist = {"max_features": sp_randint(200, 500),
-                      "min_samples_split": sp_randint(20, 70),
-                      "min_samples_leaf": sp_randint(1, 14),
-                      "splitter":["best", "random"]}
-
-        # run grid search
-        n_iter_search=50
-        model = RandomizedSearchCV(tr, param_distributions=param_dist, n_iter=n_iter_search)
-        model.fit(X_train, Y_train)
-
-        report(model.cv_results_)
-
-    elif model_name == "random_forest":
-
-        means = []
-        for criterion in ['mse', 'mae']:
-            for n_estimators in range(10, 15):
-                rf = RandomForestRegressor(criterion=criterion, n_estimators=n_estimators)
-                scores = cross_val_score(rf, X_train, Y_train, cv=5)
-                means += [[criterion, n_estimators, scores.mean()]]
-        means.sort(key=lambda x: x[2], reverse=True)
-        best_criterion = means[0][0]
-        best_n_estimators = means[0][1]
-        print("best_criterion %s" % best_criterion)
-        print("best n_estimators %s " % best_n_estimators)
-
-        model = RandomForestRegressor(criterion=best_criterion, n_estimators=best_n_estimators)
-        model.fit(X_train, Y_train)
-
-    elif model_name == "random_forest_2":
+    elif model_name == "random_random_forest":
 
         rf = RandomForestRegressor()
         # specify parameters and distributions to sample from
@@ -328,96 +281,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         report(model.cv_results_, 5)
         top5 = report_export(model.cv_results_, 5)
 
-    elif model_name == "random_forest_3":
 
-
-        n_iter_search = 10
-        means = []
-        for i in range(n_iter_search):
-            max_d = None
-            max_f = random.randint(16, 25)
-            min_samples_s = random.randint(2, 20)
-            min_samples_l = random.randint(1, 4)
-            bootstr = False
-
-        # run randomized search
-
-            model = RandomForestRegressor(criterion='mae', max_depth=max_d, min_samples_split=min_samples_s, min_samples_leaf=min_samples_l, max_features=max_f, bootstrap=bootstr)
-            scores = cross_val_score(model, X_train, Y_train, cv=5)
-            print(max_d, max_f, min_samples_s, min_samples_l, bootstr, scores.mean())
-            means += [[max_d, max_f, min_samples_s, min_samples_l, bootstr, scores.mean()]]
-
-        means.sort(key=lambda x : x[5], reverse = True)
-        print(means)
-        best_params = means[0][:5]
-        best_means = means[0][5]
-        print(means[0])
-
-        model = RandomForestRegressor(criterion='mae', max_depth=best_params[0], min_samples_split=best_params[2],
-                                      min_samples_leaf=best_params[3], max_features=best_params[1], bootstrap=best_params[4])
-        model.fit(X_train, Y_train)
-
-    elif model_name == "random_forest_4":
-
-        means = []
-        rows = []
-        header = ['']+[i for i in range(16, 26, 2)]
-        rows += [header]
-        for max_f in range(16, 26, 2):
-            row = [max_f]
-            for min_samples_s in range(2, 21, 2):
-                    model = RandomForestRegressor(criterion='mae', max_depth=None, min_samples_split=min_samples_s,
-                                                  min_samples_leaf=1, max_features=max_f, bootstrap=False)
-                    scores = cross_val_score(model, X_train, Y_train, cv=5)
-                    print(max_f, min_samples_s, scores.mean())
-                    means += [[max_f, min_samples_s, scores.mean()]]
-                    row+= [scores.mean()]
-            rows += [row]
-        means.sort(key=lambda x: x[2], reverse=True)
-        print(means)
-        best_params = means[0][:2]
-        print(means[0])
-
-        model = RandomForestRegressor(criterion='mae', max_depth=None, min_samples_split=best_params[1],
-                                      min_samples_leaf=1, max_features=best_params[0],
-                                      bootstrap=False)
-        model.fit(X_train, Y_train)
-
-        write_csv('random_forest_grid', rows)
-        # for i in range(len(tr.feature_importances_)):
-        #     print("{}".format(str(list(X.columns.values)[i])))
-        #     print("{}".format(str(tr.feature_importances_[i])))
-
-    elif model_name == "random_forest_5":
-
-        means = []
-        rows = []
-        header = ['']+[i for i in range(25, 50, 5)]
-        rows += [header]
-        for n_estimators in range(25, 50 , 5):
-            row = [n_estimators]
-            model = RandomForestRegressor(n_estimators=n_estimators, criterion='mae', max_depth=None, min_samples_split=4,
-                                          min_samples_leaf=1, max_features=20, bootstrap=False)
-            scores = cross_val_score(model, X_train, Y_train, cv=5)
-            print(n_estimators, scores.mean())
-            means += [[n_estimators, scores.mean()]]
-            row+= [scores.mean()]
-            rows += [row]
-        means.sort(key=lambda x: x[1], reverse=True)
-        print(means)
-        print(means[0][0])
-
-        model = RandomForestRegressor(n_estimators=means[0][0], criterion='mae', max_depth=None, min_samples_split=4,
-                                      min_samples_leaf=1, max_features=20,
-                                      bootstrap=False)
-        model.fit(X_train, Y_train)
-
-        write_csv('random_forest_grid_n_estimators', rows)
-
-    elif model_name == "random_forest_6":
-
-        model = RandomForestRegressor(n_estimators=25, criterion='mae', min_samples_split=4, bootstrap=False, max_features=200)
-        model.fit(X_train, Y_train)
 
     #Metrics
     mets = metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values)
