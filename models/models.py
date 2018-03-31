@@ -26,13 +26,14 @@ from scipy.stats import randint as sp_randint
 
 from sklearn.model_selection import GridSearchCV
 
+from scipy.interpolate import spline
+
 
 
 def predict_mortality(name, model_name, cancer_type, test_size, developing_countries=False):
 
     PATH_datasets = '../datasets/final_datasets/'
     df = pd.read_csv(os.path.join(PATH_datasets,name + ".csv"))
-
     # if developing_countries:
     #     #sélection des pays en voie de développement
     #     countries_df = pd.read_csv('developping_countries.csv')
@@ -44,7 +45,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     #sélection du type de cancer
     df=df[df.type == cancer_type]
     df=df.drop('type', axis=1)
-
+    df = remove_outliers(df)
     #variable à prédire : mortalité relative
     X=df.drop(columns = ['area', 'year', 'relative_mortality', 'TOTAL_POP', 'Unnamed: 0'], axis=1)
     Y=df.relative_mortality
@@ -66,6 +67,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
     #variables population totale, année et pays mises de coté
     X_results=X_test[['area', 'year', 'TOTAL_POP']]
+    X_values=X_train[['area', 'year', 'TOTAL_POP']]
 
     X_test=X_test.drop('TOTAL_POP', axis=1)
     X_train=X_train.drop('TOTAL_POP', axis=1)
@@ -436,6 +438,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     X_results['predicted_mortality'] = X_results['predicted_relative_mortality'] * X_results['TOTAL_POP']
     X_results['predicted_mortality'] = X_results['predicted_mortality'].round()
     X_results['true_mortality'] = X_results['relative_mortality'] * X_results['TOTAL_POP']
+    X_values['true_mortality'] = Y_train * X_values['TOTAL_POP']
     # Mean Square Error
     mse_test = np.mean((X_results['true_mortality'] - X_results['predicted_mortality']) ** 2)
     print("Mean Square Error : %s" % mse_test)
@@ -460,15 +463,54 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     div = list(zip(list(X_results['area']), list(X_results['year']), list(division),list(absdiff), list(max_one_true)))
     div.sort(key = lambda x:x[2])
     print(div)
+    div.sort(key = lambda x : (x[0], x[1]))
+    div = [('Country', 'year', 'APE', 'AE', 'GT')] + div
+    write_csv('../plots/evolution_per_country', div)
     mape_test = np.mean(division)
     print("Mean Absolute Percentage of Error : %s" % mape_test)
     # Mean Deviation
     mean = np.mean(X_results['true_mortality'])
     md = np.mean(abs(X_results['true_mortality']-mean))
     print("Mean deviation : %s" % md)
-    plt.plot(X_results['predicted_mortality'][0:100], np.array([i for i in range(100)]))
-    plt.plot(X_results['true_mortality'][0:100], np.array([i for i in range(100)]))
-    plt.show()
+    plt.plot(np.array([i for i in range(100)]), X_results['predicted_mortality'][0:100])
+    plt.plot(np.array([i for i in range(100)]), X_results['true_mortality'][0:100])
+    plt.savefig('../plots/predictions_fit.png')
+    plt.close()
+    dico = {}
+    for i in range(len(X_results)):
+        country = X_results.iloc[i]['area']
+        year = int(X_results.iloc[i]['year'])
+        true_mor = X_results.iloc[i]['true_mortality']
+        if country not in dico.keys():
+            dico[country] = [(year, true_mor)]
+        else:
+            dico[country] += [(year, true_mor)]
+    for i in range(len(X_values)):
+        country = X_values.iloc[i]['area']
+        year = int(X_values.iloc[i]['year'])
+        true_mor = X_values.iloc[i]['true_mortality']
+        if country not in dico.keys():
+            dico[country] = [(year, true_mor)]
+        else:
+            dico[country] += [(year, true_mor)]
+    for k, v in dico.items():
+        if len(v) > 1 :
+            v.sort(key = lambda x : x[0])
+        years = [year for year, _ in v]
+        mors = [mor for _, mor in v]
+        plt.scatter(years, mors)
+        # if len(years)>3:
+        #     x_new = np.linspace(years[0], years[len(years)-1], 300)
+        #     # print(years)
+        #     # print(mors)
+        #     # print(x_new)
+        #     mors_smooth = spline(years, mors, x_new)
+        #     plt.plot(x_new, mors_smooth)
+        plt.savefig('../plots/' + k + '.png')
+        plt.close()
+
+
+
 
     if model_name == 'ridge_regression' or model_name == 'lasso_regression':
         results = pd.DataFrame(data={'alpha': best_alpha, 'R2_train': model.score(X_train, Y_train), 'R2_test': model.score(X_test, Y_test),
@@ -496,7 +538,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         results.to_csv(model_name +'_' + name + '_results.csv', index = False)
 
 def write_csv(name, rows):
-    with open(name + '.csv', 'wt') as csv_file:
+    with open(name + '.csv', 'w', newline='') as csv_file:
         writer = csv.writer(csv_file, delimiter=';')
         for row in rows:
             writer.writerow(row)
@@ -514,6 +556,20 @@ def report(results, n_top=5):
             print("")
 
 
-name = 'ALL_MV50_PCA_Merged_PCA'
+def remove_outliers(df):
+    indexes = []
+    d = {col_name: df[col_name] for col_name in df.columns.values}
+    df = pd.DataFrame(data=d)
+    df = df.reset_index(drop=True)
+    outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1983), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002)]
+    for i in range(df.shape[0]):
+        for outlier in outliers:
+            if df.iloc[i]['area'] == outlier[0] and df.iloc[i]['year'] == outlier[1]:
+                #print("Found {} {}".format(outlier[0], outlier[1]))
+                indexes += [i]
+    df.drop(df.index[indexes], inplace = True, axis=0)
+    return df
 
-predict_mortality(name, 'knn', 'C16', 0.33)
+name = 'ALL_MV30_VT_Merged'
+
+predict_mortality(name, 'random_forest_2', 'C16', 0.33)
