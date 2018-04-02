@@ -278,6 +278,22 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         report(model.cv_results_, 5)
         top5 = report_export(model.cv_results_, 5)
 
+    elif model_name == "random_forest_features":
+
+        model = RandomForestRegressor(criterion="mae", max_features=40, max_depth=32, min_samples_leaf=2, min_samples_split=6, bootstrap=False)
+
+        model.fit(X_train, Y_train)
+
+        features=[]
+
+        for i in range(len(model.feature_importances_)):
+            features+=[[str(list(X.columns.values)[i]), model.feature_importances_[i]]]
+        print(features)
+        features.sort(key=lambda x: x[1], reverse=True)
+        print(features)
+
+        write_csv('feature_importance'+name, features)
+
 
 
     #Metrics
@@ -297,33 +313,33 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         else:
             dico[country] += [(year, true_mor)]
 
-    X_other = X_lag[['area', 'year', 'TOTAL_POP']]
-    X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
-    Y_lag = model.predict(X_lag)
-    X_lag['area'] = X_other['area']
-    X_lag['year'] = X_other['year']
-    X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
-    dicolag = {}
-    for i in range(len(X_lag)):
-        country = X_values.iloc[i]['area']
-        year = int(X_values.iloc[i]['year'])
-        true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
-        if country not in dicolag.keys():
-            dicolag[country] = [(year, true_mor)]
-        else:
-            dicolag[country] += [(year, true_mor)]
-
-    for k, v in dico.items():
-        if len(v) > 1 :
-            v.sort(key = lambda x : x[0])
-        years = [year for year, _ in v]
-        mors = [mor for _, mor in v]
-        plt.scatter(years, mors, c='b')
-        if k in dicolag.keys():
-            v_lag = dicolag[k]
-            years_lag = [year for year, _ in v_lag]
-            mors_lag = [mor for _, mor in v_lag]
-            plt.scatter(years_lag, mors_lag, c='r')
+    # X_other = X_lag[['area', 'year', 'TOTAL_POP']]
+    # X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
+    # Y_lag = model.predict(X_lag)
+    # X_lag['area'] = X_other['area']
+    # X_lag['year'] = X_other['year']
+    # X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
+    # dicolag = {}
+    # for i in range(len(X_lag)):
+    #     country = X_values.iloc[i]['area']
+    #     year = int(X_values.iloc[i]['year'])
+    #     true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
+    #     if country not in dicolag.keys():
+    #         dicolag[country] = [(year, true_mor)]
+    #     else:
+    #         dicolag[country] += [(year, true_mor)]
+    #
+    # for k, v in dico.items():
+    #     if len(v) > 1 :
+    #         v.sort(key = lambda x : x[0])
+    #     years = [year for year, _ in v]
+    #     mors = [mor for _, mor in v]
+    #     plt.scatter(years, mors, c='b')
+    #     if k in dicolag.keys():
+    #         v_lag = dicolag[k]
+    #         years_lag = [year for year, _ in v_lag]
+    #         mors_lag = [mor for _, mor in v_lag]
+    #         plt.scatter(years_lag, mors_lag, c='r')
         # if len(years)>3:
         #     x_new = np.linspace(years[0], years[len(years)-1], 300)
         #     # print(years)
@@ -331,8 +347,8 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         #     # print(x_new)
         #     mors_smooth = spline(years, mors, x_new)
         #     plt.plot(x_new, mors_smooth)
-        plt.savefig('../plots/' + k + '.png')
-        plt.close()
+        # plt.savefig('../plots/' + k + '.png')
+        # plt.close()
 
 
 
@@ -489,3 +505,5 @@ def lag_X_Y(df):
     X_lag = X_lag.drop(columns=['relative_mortality', 'Unnamed: 0'], axis=1)
     Y = df.loc[df['relative_mortality'] != 0].relative_mortality
     return X_lag, X, Y
+
+predict_mortality("ALL_MV50_VT_Merged", "random_forest_features", "C16", 0.33)
