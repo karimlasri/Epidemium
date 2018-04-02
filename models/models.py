@@ -369,6 +369,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         mets['alpha'] = best_alpha
         results = pd.DataFrame(data=mets,
                                index=[0])
+
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
 
     elif model_name == 'knn':
@@ -376,6 +377,10 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         mets['k'] = best_k
         results = pd.DataFrame(data=mets,
                                index=[0])
+
+        if developing_countries:
+            model_name += '_PVD'
+
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
 
     elif model_name == 'random_random_forest':
@@ -521,4 +526,4 @@ def lag_X_Y(df):
     Y = df.loc[df['relative_mortality'] != 0].relative_mortality
     return X_lag, X, Y
 
-predict_mortality("ALL_MV50_VT_Merged", "random_random_forest", "C16", developing_countries= True,  test_size= 0.33)
+predict_mortality("ALL_MV50_VT_Merged", "knn", "C16", developing_countries= True,  test_size= 0.33)

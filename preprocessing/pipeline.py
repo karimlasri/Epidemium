@@ -229,4 +229,4 @@ def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred
         df_final.to_csv('../datasets/final_datasets/' + name + '.csv')
     return (df_final)
 
-pipeline_multiple_lag(30, 30, 'VT', 'VT', cancer_type='C16', lag=5, save=True)
+pipeline_multiple_lag(50, 0, 'PCA', 'PCA', cancer_type='C16', lag=0, save=True)
