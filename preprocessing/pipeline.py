@@ -192,8 +192,21 @@ def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred
         before_suffix += '_{}'.format(str(dimred_type_before))
 
     data_mortality = pd.read_csv('../datasets/base_datasets/mortality_clean_aggregate.csv')
-    wb_processed = pd.read_csv('../datasets/intermediate_datasets/Worldbank' + before_suffix + '.csv')
-    fao_processed = pd.read_csv('../datasets/intermediate_datasets/FAOSTAT' + before_suffix + '.csv')
+    try :
+        wb_processed = pd.read_csv('../datasets/intermediate_datasets/Worldbank' + before_suffix + '.csv')
+        fao_processed = pd.read_csv('../datasets/intermediate_datasets/FAOSTAT' + before_suffix + '.csv')
+    except FileNotFoundError:
+        # Reading data
+        data_wb = pd.read_csv('../datasets/base_datasets/WORLDBANK.csv')
+        data_fao = pd.read_csv('../datasets/base_datasets/FAOSTAT.csv')
+
+        # Cleaning datasets
+        wb_clean = clean_country_names(data_wb, 'WB', True)
+        fao_clean = clean_country_names(data_fao, 'FAO', True)
+        
+        wb_processed = pipeline_single(wb_clean, mv_before, dimred_type_before, lag)
+        fao_processed = pipeline_single(fao_clean, mv_before, dimred_type_before, lag)
+
 
     if lag != 0:
         wb_processed['year'] = wb_processed['year'] + lag
