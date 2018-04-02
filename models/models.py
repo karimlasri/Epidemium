@@ -44,7 +44,6 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     if remove_out:
         df = remove_outliers(df)
 
-    print("Shape3: {}".format(df.shape))
     df['relative_mortality'] = df['relative_mortality'].fillna(-1)
     mortality_values = list(df['relative_mortality'].values)
     mortality_values.sort()
@@ -340,45 +339,46 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
 
     # Plotting lags prediction
-    X_other = X_lag[['area', 'year', 'TOTAL_POP']]
-    X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
-    Y_lag = model.predict(X_lag)
-    X_lag['area'] = X_other['area']
-    X_lag['year'] = X_other['year']
-    X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
-    dicolag = {}
-    for i in range(len(X_lag)):
-        country = X_other.iloc[i]['area']
-        year = int(X_other.iloc[i]['year'])
-        true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
-        if country not in dicolag.keys():
-            dicolag[country] = [(year, true_mor)]
-        else:
-            dicolag[country] += [(year, true_mor)]
+    if lag != 0:
+        X_other = X_lag[['area', 'year', 'TOTAL_POP']]
+        X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
+        Y_lag = model.predict(X_lag)
+        X_lag['area'] = X_other['area']
+        X_lag['year'] = X_other['year']
+        X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
+        dicolag = {}
+        for i in range(len(X_lag)):
+            country = X_other.iloc[i]['area']
+            year = int(X_other.iloc[i]['year'])
+            true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
+            if country not in dicolag.keys():
+                dicolag[country] = [(year, true_mor)]
+            else:
+                dicolag[country] += [(year, true_mor)]
 
-    for k, v in dico.items():
-        if len(v) > 1 :
-            v.sort(key = lambda x : x[0])
-        years = [year for year, _, _ in v]
-        mors = [mor for _, mor, _ in v]
-        plt.scatter(years, mors, c='b')
-        predicted_mors = [pred for _, _, pred in v]
-        plt.scatter(years, predicted_mors, c='g')
-        if k in dicolag.keys():
-            v_lag = dicolag[k]
-            years_lag = [year for year, _ in v_lag]
-            mors_lag = [mor for _, mor in v_lag]
-            plt.scatter(years_lag, mors_lag, c='r')
-        # if len(years)>3:
-        #     x_new = np.linspace(years[0], years[len(years)-1], 300)
-        #     # print(years)
-        #     # print(mors)
-        #     # print(x_new)
-        #     mors_smooth = spline(years, mors, x_new)
-        #     plt.plot(x_new, mors_smooth)
-        plt.savefig('../plots/predictions_with_lags/' + k + '.png')
-        plt.close()
-
+        for k, v in dico.items():
+            if len(v) > 1 :
+                v.sort(key = lambda x : x[0])
+            years = [year for year, _, _ in v]
+            mors = [mor for _, mor, _ in v]
+            true_plot = plt.scatter(years, mors, c='b', label = 'true mortality')
+            predicted_mors = [pred for _, _, pred in v]
+            pred_plot = plt.scatter(years, predicted_mors, c='g', label = 'predicted mortality for values we have')
+            if k in dicolag.keys():
+                v_lag = dicolag[k]
+                years_lag = [year for year, _ in v_lag]
+                mors_lag = [mor for _, mor in v_lag]
+                lag_pred_plot = plt.scatter(years_lag, mors_lag, c='r', label = 'predicted mortality for values we don\'t have')
+            # if len(years)>3:
+            #     x_new = np.linspace(years[0], years[len(years)-1], 300)
+            #     # print(years)
+            #     # print(mors)
+            #     # print(x_new)
+            #     mors_smooth = spline(years, mors, x_new)
+            #     plt.plot(x_new, mors_smooth)
+            plt.legend(handles = [true_plot, pred_plot, lag_pred_plot])
+            plt.savefig('../plots/predictions_with_lags/' + k + '.png')
+            plt.close()
 
 
     #Exporting results
@@ -529,19 +529,13 @@ def metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values):
     dic['MAPE'] = mape_test
     print("Mean Absolute Percentage of Error : %s" % mape_test)
 
-    print('yo')
     # Histogram
     division = list(division)
     division.sort()
-    print(len(division))
-    print(division)
-    rounded_division = [round(d, 2) for d in list(division)]
-    print(rounded_division)
-    plt.hist(rounded_division)
+    rounded_division = [round(d, 2)*100 for d in list(division)]
+    plt.hist(rounded_division, 100, log = True)
     plt.savefig('../plots/predictions_histogram.png')
     plt.close()
-    print('ya')
-
 
     # MAPE95%
     mape_95 = np.mean(division[:int(len(division)*95/100)])
@@ -569,4 +563,4 @@ def lag_X_Y(df):
     Y = df.loc[df['relative_mortality'] != -1].relative_mortality
     return X_lag, X, Y
 
-predict_mortality("ALL_MV30_VT_Merged_C16_Lag5", "knn", "C16", test_size= 0.33, developing_countries= False,  lag = 5)
+predict_mortality("ALL_MV50_PCA_Merged_PCA_C16_Lag5", "knn", "C16", test_size= 0.33, developing_countries= False,  lag = 5)
