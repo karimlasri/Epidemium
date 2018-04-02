@@ -54,7 +54,6 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         Y=df.relative_mortality
 
 
-
     #standardisation des variables d'entrée pour les modèles linéaires
     if model_name in ["linear_regression", "ridge_regression", "lasso_regression"]:
         labels = X.columns
@@ -504,7 +503,7 @@ def metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values):
     # Mean Average Error
     mae_test = np.mean(abs(X_results['true_mortality'] - X_results['predicted_mortality']))
     dic['MAE'] = mae_test
-    print("Mean Average Error : %s" % mae_test)
+    print("Mean Absolute Error : %s" % mae_test)
 
     # Relative Average Error
     mean_mortality_test = np.mean(X_results['true_mortality'])
