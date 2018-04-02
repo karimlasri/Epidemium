@@ -29,8 +29,8 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
     if developing_countries:
         countries_df = pd.read_csv('developping_countries.csv')
-        countries=countries_df['area']
-        df=df[df.area.isin(countries)]
+        countries = countries_df['area']
+        df = df[df.area.isin(countries)]
 
     print(df.info())
 
@@ -293,15 +293,15 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
         model.fit(X_train, Y_train)
 
-        # features=[]
-        #
-        # for i in range(len(model.feature_importances_)):
-        #     features+=[[str(list(X.columns.values)[i]), model.feature_importances_[i]]]
-        # print(features)
-        # features.sort(key=lambda x: x[1], reverse=True)
-        # print(features)
-        #
-        # write_csv('feature_importance'+name, features)
+        features=[]
+
+        for i in range(len(model.feature_importances_)):
+            features+=[[str(list(X.columns.values)[i]), model.feature_importances_[i]]]
+        print(features)
+        features.sort(key=lambda x: x[1], reverse=True)
+        print(features)
+
+        write_csv('feature_importance'+name, features)
 
 
 
