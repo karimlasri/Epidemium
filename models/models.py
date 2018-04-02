@@ -376,7 +376,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
                                index=[0])
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
 
-    elif model_name == 'random_forest_2':
+    elif model_name == 'random_random_forest':
 
         results = pd.DataFrame(columns= ['R2_train', 'R2_test', 'MSE', 'RMSE', 'MAE', 'MPE', 'MAPE', 'MD'])
         parameters = pd.DataFrame(columns= ['max_depth','max_features', 'min_samples_split', 'min_samples_leaf','bootstrap','criterion'])
@@ -392,6 +392,10 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
             params_temp = pd.DataFrame(data = params, index=[0])
             results = results.append(results_temp)
             parameters = parameters.append(params_temp)
+
+        if developing_countries:
+            model_name += '_PVD'
+
         results.to_csv(model_name + '_' + name + '_results.csv', index=False)
         parameters.to_csv(model_name + '_' + name + '_params.csv', index= False)
 
@@ -515,4 +519,4 @@ def lag_X_Y(df):
     Y = df.loc[df['relative_mortality'] != 0].relative_mortality
     return X_lag, X, Y
 
-predict_mortality("ALL_MV50_VT_Merged", "random_forest_features", "C16", 0.33)
+predict_mortality("ALL_MV50_VT_Merged", "random_random_forest", "C16", developing_countries= True,  test_size= 0.33)
