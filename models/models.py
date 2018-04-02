@@ -17,7 +17,7 @@ from scipy.stats import randint as sp_randint
 from sklearn.model_selection import GridSearchCV
 
 
-def predict_mortality(name, model_name, cancer_type, test_size, developing_countries=False, lag=0, remove_out = False):
+def predict_mortality(name, model_name, cancer_type, test_size, developing_countries=False, lag=0, remove_out = False, plot_lag_predictions = False:
     # Whole pipeline to predict mortality given the model, and name of dataset to use
 
     PATH_datasets = '../datasets/final_datasets/'
