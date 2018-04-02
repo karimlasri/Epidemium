@@ -45,10 +45,6 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         df = remove_outliers(df)
 
     df['relative_mortality'] = df['relative_mortality'].fillna(-1)
-    mortality_values = list(df['relative_mortality'].values)
-    mortality_values.sort()
-    print(mortality_values[:100])
-    print(df.loc[df['relative_mortality']!=-1.0].shape)
 
 
     if lag != 0:
