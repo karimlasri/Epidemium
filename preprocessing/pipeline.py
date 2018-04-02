@@ -119,15 +119,38 @@ def clean_country_names(df, type, save = False):
         return(data_WORLDBANK_df)
 
 
+def remove_outliers(df):
+    indexes = []
+    d = {col_name: df[col_name] for col_name in df.columns.values}
+    df = pd.DataFrame(data=d)
+    df = df.reset_index(drop=True)
+    outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1982), ('Honduras', 1983), ('Jamaica', 1968), ('Jamaica', 1969), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Pakistan', 1993), ('Pakistan', 1994), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002), ('Azerbaijan', 2003), ('Grenada', 1974), ('Grenada', 1975), ('Grenada', 1976), ('Grenada', 1977), ('Guadeloupe', 1971), ('Guadeloupe', 1972), ('Guadeloupe', 1973), ('Guadeloupe', 1976), ('Guadeloupe', 1977), ('Guadeloupe', 1978), ('Guadeloupe', 1979), ('Guadeloupe', 1980), ('San Marino', 2011), ('San Marino', 2012), ('San Marino', 2013), ('San Marino', 2014), ('San Marino', 2015)]
+    for i in range(df.shape[0]):
+        for outlier in outliers:
+            if df.iloc[i]['area'] == outlier[0] and df.iloc[i]['year'] == outlier[1]:
+                #print("Found {} {}".format(outlier[0], outlier[1]))
+                indexes += [i]
+    df.drop(df.index[indexes], inplace = True, axis=0)
+    return df
+
+def clean_mortality_outliers():
+    PATH_dataset = '../datasets/base_datasets/mortality_clean_aggregate'
+    df = pd.read_csv(PATH_dataset + ".csv")
+    df = remove_outliers(df)
+    df.to_csv('../datasets/clean_datasets/mortality_clean.csv')
+
 def pipeline_multiple(mv_before = 0, mv_after = 0, dimred_type_before = '', dimred_type_after = '', lag = 0, save = False):
     # The whole pipeline from all base datasets
     # Reading data
     data_wb = pd.read_csv('../datasets/base_datasets/WORLDBANK.csv')
     data_fao = pd.read_csv('../datasets/base_datasets/FAOSTAT.csv')
-    data_mortality = pd.read_csv('../datasets/base_datasets/mortality_clean_aggregate.csv')
+
     # Cleaning datasets
     wb_clean = clean_country_names(data_wb, 'WB', True)
     fao_clean = clean_country_names(data_fao, 'FAO', True)
+    clean_mortality_outliers()
+    data_mortality = pd.read_csv('../datasets/clean_datasets/mortality_clean.csv')
+
     # Processing data before merging
     wb_processed = pipeline_single(wb_clean, mv_before, dimred_type_before, lag)
     fao_processed = pipeline_single(fao_clean, mv_before, dimred_type_before, lag)

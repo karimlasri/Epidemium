@@ -313,6 +313,8 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         else:
             dico[country] += [(year, true_mor)]
 
+
+    # Plotting lags prediction
     # X_other = X_lag[['area', 'year', 'TOTAL_POP']]
     # X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
     # Y_lag = model.predict(X_lag)
@@ -425,7 +427,7 @@ def remove_outliers(df):
     d = {col_name: df[col_name] for col_name in df.columns.values}
     df = pd.DataFrame(data=d)
     df = df.reset_index(drop=True)
-    outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1983), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002)]
+    outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1982), ('Honduras', 1983), ('Jamaica', 1968), ('Jamaica', 1969), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Pakistan', 1993), ('Pakistan', 1994), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002), ('Azerbaijan', 2003), ('Grenada', 1974), ('Grenada', 1975), ('Grenada', 1976), ('Grenada', 1977), ('Guadeloupe', 1971), ('Guadeloupe', 1972), ('Guadeloupe', 1973), ('Guadeloupe', 1976), ('Guadeloupe', 1977), ('Guadeloupe', 1978), ('Guadeloupe', 1979), ('Guadeloupe', 1980), ('San Marino', 2011), ('San Marino', 2012), ('San Marino', 2013), ('San Marino', 2014), ('San Marino', 2015)]
     for i in range(df.shape[0]):
         for outlier in outliers:
             if df.iloc[i]['area'] == outlier[0] and df.iloc[i]['year'] == outlier[1]:
