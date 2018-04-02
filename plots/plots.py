@@ -22,6 +22,51 @@ def plot_mortality(cancer_type):
 
     mor_countries = list(dico_mor.keys())
     mor_countries.sort()
+
+
+    for k, v in dico_mor.items():
+        if len(v) > 1 :
+            v.sort(key = lambda x : x[0])
+        years = [year for year, _ in v]
+        mors = [mor for _, mor in v]
+        plt.scatter(years, mors, c='b')
+
+    # if k in dicolag.keys():
+    #     v_lag = dicolag[k]
+    #     years_lag = [year for year, _ in v_lag]
+    #     mors_lag = [mor for _, mor in v_lag]
+    #     plt.scatter(years_lag, mors_lag, c='r')
+    # if len(years)>3:
+    #     x_new = np.linspace(years[0], years[len(years)-1], 300)
+    #     # print(years)
+    #     # print(mors)
+    #     # print(x_new)
+    #     mors_smooth = spline(years, mors, x_new)
+    #     plt.plot(x_new, mors_smooth)
+        plt.savefig('../plots/evolution_per_country/' + k + '.png')
+        plt.close()
+
+def plot_mortality_with_data_lags(cancer_type, lag=0):
+    PATH_mortality = '../datasets/clean_datasets/mortality_clean'
+    mor = pd.read_csv(PATH_mortality + ".csv")
+    mor = mor[mor.type == cancer_type]
+    dico_mor = {}
+
+    for i in range(len(mor)):
+        country = mor.iloc[i]['area']
+        year = int(mor.iloc[i]['year'])
+        true_mor = mor.iloc[i]['sum']
+        if country not in dico_mor.keys():
+            dico_mor[country] = [(year, true_mor)]
+        else:
+            dico_mor[country] += [(year, true_mor)]
+
+    max_mors = {}
+    for k, v in dico_mor.items():
+        max_mors[k] = max([mor for _, mor in v])
+
+    mor_countries = list(dico_mor.keys())
+    mor_countries.sort()
     print(mor_countries)
 
     PATH_wb = '../datasets/clean_datasets/Worldbank_Replaced_Countries'
@@ -69,7 +114,7 @@ def plot_mortality(cancer_type):
             v_wb = dico_wb[k]
             if len(v_wb) > 1:
                 v.sort(key=lambda x: x[0])
-            years_wb = [year+5 for year, _ in v_wb]
+            years_wb = [year+lag for year, _ in v_wb]
             mors_wb = [mor for _, mor in v_wb]
             plt.scatter(years_wb, mors_wb, c='r')
         if k in dico_fao.keys():
@@ -77,26 +122,11 @@ def plot_mortality(cancer_type):
                 v_fao = dico_fao[k]
                 if len(v_fao) > 1:
                     v_fao.sort(key=lambda x: x[0])
-                years_fao = [year+5 for year, _ in v_fao]
+                years_fao = [year+lag for year, _ in v_fao]
                 mors_fao = [mor for _, mor in v_fao]
-                print(years_fao)
-                print(mors_fao)
                 plt.scatter(years_fao, mors_fao, c='g')
             except ValueError:
                 pass
-
-    # if k in dicolag.keys():
-    #     v_lag = dicolag[k]
-    #     years_lag = [year for year, _ in v_lag]
-    #     mors_lag = [mor for _, mor in v_lag]
-    #     plt.scatter(years_lag, mors_lag, c='r')
-    # if len(years)>3:
-    #     x_new = np.linspace(years[0], years[len(years)-1], 300)
-    #     # print(years)
-    #     # print(mors)
-    #     # print(x_new)
-    #     mors_smooth = spline(years, mors, x_new)
-    #     plt.plot(x_new, mors_smooth)
         plt.savefig('../plots/evolution_per_country_with_other_data/' + k + '.png')
         plt.close()
 

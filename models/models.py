@@ -17,7 +17,7 @@ from scipy.stats import randint as sp_randint
 from sklearn.model_selection import GridSearchCV
 
 
-def predict_mortality(name, model_name, cancer_type, test_size, developing_countries=False, lag=0):
+def predict_mortality(name, model_name, cancer_type, test_size, developing_countries=False, lag=0, remove_out = False):
     # Whole pipeline to predict mortality given the model, and name of dataset to use
 
     PATH_datasets = '../datasets/final_datasets/'
@@ -25,21 +25,33 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
     df = df.dropna(subset = ['TOTAL_POP'], axis = 0)
 
-    print(df.info())
-
+    # Selecting developing countries
     if developing_countries:
-        countries_df = pd.read_csv('developping_countries.csv')
+        countries_df = pd.read_csv('../datasets/base_datasets/developping_countries.csv')
         countries = countries_df['area']
         df = df[df.area.isin(countries)]
 
-    print(df.info())
 
-    # sélection du type de cancer
+    # Replacing cancer type if there are lags
+    if len(cancer_type) != 0:
+        df['type'] = df['type'].fillna('C16')
+
+    # Selecting cancer type
     df=df[df.type == cancer_type]
     df=df.drop('type', axis=1)
-    # Suppression des valeurs absurdes
-    df = remove_outliers(df)
-    # variable à prédire : mortalité relative
+
+    # Removing outliers
+    if remove_out:
+        df = remove_outliers(df)
+
+    print("Shape3: {}".format(df.shape))
+    df['relative_mortality'] = df['relative_mortality'].fillna(-1)
+    mortality_values = list(df['relative_mortality'].values)
+    mortality_values.sort()
+    print(mortality_values[:100])
+    print(df.loc[df['relative_mortality']!=-1.0].shape)
+
+
     if lag != 0:
         X_lag, X, Y = lag_X_Y(df)
     else:
@@ -312,45 +324,51 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     plt.plot(np.array([i for i in range(100)]), X_results['true_mortality'][0:100])
     plt.savefig('../plots/predictions_fit.png')
     plt.close()
+
+
     dico = {}
     for i in range(len(X_results)):
         country = X_results.iloc[i]['area']
         year = int(X_results.iloc[i]['year'])
         true_mor = X_results.iloc[i]['true_mortality']
+        pred_mor = X_results.iloc[i]['predicted_mortality']
         if country not in dico.keys():
-            dico[country] = [(year, true_mor)]
+            dico[country] = [(year, true_mor, pred_mor)]
         else:
-            dico[country] += [(year, true_mor)]
+            dico[country] += [(year, true_mor, pred_mor)]
+
 
 
     # Plotting lags prediction
-    # X_other = X_lag[['area', 'year', 'TOTAL_POP']]
-    # X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
-    # Y_lag = model.predict(X_lag)
-    # X_lag['area'] = X_other['area']
-    # X_lag['year'] = X_other['year']
-    # X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
-    # dicolag = {}
-    # for i in range(len(X_lag)):
-    #     country = X_values.iloc[i]['area']
-    #     year = int(X_values.iloc[i]['year'])
-    #     true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
-    #     if country not in dicolag.keys():
-    #         dicolag[country] = [(year, true_mor)]
-    #     else:
-    #         dicolag[country] += [(year, true_mor)]
-    #
-    # for k, v in dico.items():
-    #     if len(v) > 1 :
-    #         v.sort(key = lambda x : x[0])
-    #     years = [year for year, _ in v]
-    #     mors = [mor for _, mor in v]
-    #     plt.scatter(years, mors, c='b')
-    #     if k in dicolag.keys():
-    #         v_lag = dicolag[k]
-    #         years_lag = [year for year, _ in v_lag]
-    #         mors_lag = [mor for _, mor in v_lag]
-    #         plt.scatter(years_lag, mors_lag, c='r')
+    X_other = X_lag[['area', 'year', 'TOTAL_POP']]
+    X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
+    Y_lag = model.predict(X_lag)
+    X_lag['area'] = X_other['area']
+    X_lag['year'] = X_other['year']
+    X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
+    dicolag = {}
+    for i in range(len(X_lag)):
+        country = X_other.iloc[i]['area']
+        year = int(X_other.iloc[i]['year'])
+        true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
+        if country not in dicolag.keys():
+            dicolag[country] = [(year, true_mor)]
+        else:
+            dicolag[country] += [(year, true_mor)]
+
+    for k, v in dico.items():
+        if len(v) > 1 :
+            v.sort(key = lambda x : x[0])
+        years = [year for year, _, _ in v]
+        mors = [mor for _, mor, _ in v]
+        plt.scatter(years, mors, c='b')
+        predicted_mors = [pred for _, _, pred in v]
+        plt.scatter(years, predicted_mors, c='g')
+        if k in dicolag.keys():
+            v_lag = dicolag[k]
+            years_lag = [year for year, _ in v_lag]
+            mors_lag = [mor for _, mor in v_lag]
+            plt.scatter(years_lag, mors_lag, c='r')
         # if len(years)>3:
         #     x_new = np.linspace(years[0], years[len(years)-1], 300)
         #     # print(years)
@@ -358,8 +376,8 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         #     # print(x_new)
         #     mors_smooth = spline(years, mors, x_new)
         #     plt.plot(x_new, mors_smooth)
-        # plt.savefig('../plots/' + k + '.png')
-        # plt.close()
+        plt.savefig('../plots/predictions_with_lags/' + k + '.png')
+        plt.close()
 
 
 
@@ -519,11 +537,11 @@ def metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values):
     return dic
 
 def lag_X_Y(df):
-    X_lag = df.loc[df['relative_mortality'] == 0]
-    X = df.loc[df['relative_mortality'] != 0]
+    X_lag = df.loc[df['relative_mortality'] == -1]
+    X = df.loc[df['relative_mortality'] != -1]
     X = X.drop(columns=['area', 'year', 'relative_mortality', 'TOTAL_POP', 'Unnamed: 0'], axis=1)
     X_lag = X_lag.drop(columns=['relative_mortality', 'Unnamed: 0'], axis=1)
-    Y = df.loc[df['relative_mortality'] != 0].relative_mortality
+    Y = df.loc[df['relative_mortality'] != -1].relative_mortality
     return X_lag, X, Y
 
-predict_mortality("ALL_MV50_VT_Merged", "knn", "C16", developing_countries= True,  test_size= 0.33)
+predict_mortality("ALL_MV30_VT_Merged_C16_Lag5", "knn", "C16", test_size= 0.33, developing_countries= False,  lag = 5)
