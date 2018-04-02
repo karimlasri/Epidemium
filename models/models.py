@@ -252,7 +252,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
 
         # run randomized search
         n_iter_search = 50
-        model = GridSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
+        model = GridSearchCV(rf, param_distributions=param_dist)
 
         model.fit(X_train, Y_train)
 
@@ -334,7 +334,7 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         #     # print(x_new)
         #     mors_smooth = spline(years, mors, x_new)
         #     plt.plot(x_new, mors_smooth)
-        plt.savefig('../plots/' + k + '.png')
+        plt.savefig('../plots/evolution_per_country/' + k + '.png')
         plt.close()
 
 
@@ -412,7 +412,7 @@ def remove_outliers(df):
     d = {col_name: df[col_name] for col_name in df.columns.values}
     df = pd.DataFrame(data=d)
     df = df.reset_index(drop=True)
-    outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1983), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002)]
+    outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1982), ('Honduras', 1983), ('Jamaica', 1968), ('Jamaica', 1969), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Pakistan', 1993), ('Pakistan', 1994), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002), ('Azerbaijan', 2003), ('Grenada', 1974), ('Grenada', 1975), ('Grenada', 1976), ('Grenada', 1977), ('Guadeloupe', 1971), ('Guadeloupe', 1972), ('Guadeloupe', 1973), ('Guadeloupe', 1976), ('Guadeloupe', 1977), ('Guadeloupe', 1978), ('Guadeloupe', 1979), ('Guadeloupe', 1980), ('San Marino', 2011), ('San Marino', 2012), ('San Marino', 2013), ('San Marino', 2014), ('San Marino', 2015)]
     for i in range(df.shape[0]):
         for outlier in outliers:
             if df.iloc[i]['area'] == outlier[0] and df.iloc[i]['year'] == outlier[1]:
@@ -492,3 +492,8 @@ def lag_X_Y(df):
     X_lag = X_lag.drop(columns=['relative_mortality', 'Unnamed: 0'], axis=1)
     Y = df.loc[df['relative_mortality'] != 0].relative_mortality
     return X_lag, X, Y
+
+PATH_dataset = '../datasets/base_datasets/mortality_clean_aggregate'
+df = pd.read_csv(PATH_dataset + ".csv")
+df = remove_outliers(df)
+df.to_csv('../datasets/clean_datasets/mortality_clean.csv')

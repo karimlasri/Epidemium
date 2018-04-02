@@ -157,7 +157,7 @@ def pipeline_multiple(mv_before = 0, mv_after = 0, dimred_type_before = '', dimr
     return(df_final)
 
 
-def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred_type_after='', lag=0, save=False):
+def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred_type_after='', cancer_type='', lag=0, save=False):
     # Multiple pipeline that generates dataset with lag
     before_suffix = ''
     if mv_before != 0:
@@ -173,28 +173,37 @@ def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred
         wb_processed['year'] = wb_processed['year'] + lag
         fao_processed['year'] = fao_processed['year'] + lag
 
-    wb_mortality = pd.merge(data_mortality, wb_processed, how='right', on=['area', 'year'])
-    print(wb_mortality.shape)
-    # Merging datasets
-    df_merged = pd.merge(wb_mortality, fao_processed, how='inner', on=['area', 'year'])
+    # Selecting cancer type
+    if len(cancer_type) != 0:
+        data_mortality=data_mortality[data_mortality.type == cancer_type]
+
+    # Merging dataframes
+    wb_fao = pd.merge(fao_processed, wb_processed, how='inner', on=['area', 'year'])
+    df_merged = pd.merge(wb_fao, data_mortality, how='left', on=['area', 'year'])
+
     # Processing data after merge
     df_final = pipeline_single(df_merged, mv_after, dimred_type_after, 0)
     # Relative mortality
     df_final['relative_mortality'] = df_final['sum'] / df_final['TOTAL_POP']
     df_final = df_final.drop(columns=['sum'])
 
+    # Saving dataframe
     if save == True:
         name = "ALL"
         if mv_before != 0:
             name += "_MV{}".format(str(mv_before))
         if dimred_type_before != '':
             name += "_" + dimred_type_before
-        if lag != 0:
-            name += "_lag{}".format(lag)
         name += "_Merged"
         if mv_after != 0:
             name += "_MV{}".format(str(mv_after))
         if dimred_type_after != '':
             name += "_" + dimred_type_after
+        if len(cancer_type) != 0:
+            name += "_{}".format(cancer_type)
+        if lag != 0:
+            name += "_Lag{}".format(lag)
         df_final.to_csv('../datasets/final_datasets/' + name + '.csv')
     return (df_final)
+
+pipeline_multiple_lag(30, 30, 'VT', 'VT', cancer_type='C16', lag=5, save=True)
