@@ -519,15 +519,40 @@ def metrics(model, X_test, Y_test, X_train, Y_train, X_results, X_values):
     # Mean Absolute Percentage of Error
     absdiff = abs(X_results['true_mortality'] - X_results['predicted_mortality'])
     max_one_true = np.maximum(np.ones(len(X_results['true_mortality'])), X_results['true_mortality'])
+    # Avoiding division by zero
     division = np.divide(absdiff, max_one_true)
     div = list(zip(list(X_results['area']), list(X_results['year']), list(division), list(absdiff), list(max_one_true)))
-    div.sort(key=lambda x: x[2])
     div.sort(key=lambda x: (x[0], x[1]))
-    div = [('Country', 'year', 'APE', 'AE', 'GT')] + div
-    write_csv('../plots/evolution_per_country', div)
+    lines = [('Country', 'year', 'APE', 'AE', 'GT')] + div
+    write_csv('../plots/evolution_per_country', lines)
     mape_test = np.mean(division)
     dic['MAPE'] = mape_test
     print("Mean Absolute Percentage of Error : %s" % mape_test)
+
+    print('yo')
+    # Histogram
+    division = list(division)
+    division.sort()
+    print(len(division))
+    print(division)
+    rounded_division = [round(d, 2) for d in list(division)]
+    print(rounded_division)
+    plt.hist(rounded_division)
+    plt.savefig('../plots/predictions_histogram.png')
+    plt.close()
+    print('ya')
+
+
+    # MAPE95%
+    mape_95 = np.mean(division[:int(len(division)*95/100)])
+    dic['MAPE95'] = mape_95
+    print("Mean Absolute Percentage of Error for 95%% best predictions : %s" % mape_95)
+
+    # MAPEmedian
+    mdape = np.median(division)
+    dic['MdAPE'] = mdape
+    print("Median of Absolute Percentage of Errors : %s" % mdape)
+
     # Mean Deviation
     mean = np.mean(X_results['true_mortality'])
     md = np.mean(abs(X_results['true_mortality'] - mean))

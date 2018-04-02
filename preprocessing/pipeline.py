@@ -123,6 +123,7 @@ def remove_outliers(df):
     indexes = []
     d = {col_name: df[col_name] for col_name in df.columns.values}
     df = pd.DataFrame(data=d)
+    print(df.shape)
     df = df.reset_index(drop=True)
     outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1982), ('Honduras', 1983), ('Jamaica', 1968), ('Jamaica', 1969), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Pakistan', 1993), ('Pakistan', 1994), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002), ('Azerbaijan', 2003), ('Grenada', 1974), ('Grenada', 1975), ('Grenada', 1976), ('Grenada', 1977), ('Guadeloupe', 1971), ('Guadeloupe', 1972), ('Guadeloupe', 1973), ('Guadeloupe', 1976), ('Guadeloupe', 1977), ('Guadeloupe', 1978), ('Guadeloupe', 1979), ('Guadeloupe', 1980), ('San Marino', 2011), ('San Marino', 2012), ('San Marino', 2013), ('San Marino', 2014), ('San Marino', 2015)]
     for i in range(df.shape[0]):
@@ -131,6 +132,8 @@ def remove_outliers(df):
                 #print("Found {} {}".format(outlier[0], outlier[1]))
                 indexes += [i]
     df.drop(df.index[indexes], inplace = True, axis=0)
+    print(df.shape)
+    df.to_csv('../datasets/clean_datasets/mortality_clean.csv')
     return df
 
 def clean_mortality_outliers():
@@ -229,4 +232,4 @@ def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred
         df_final.to_csv('../datasets/final_datasets/' + name + '.csv')
     return (df_final)
 
-pipeline_multiple_lag(50, 0, 'PCA', 'PCA', cancer_type='C16', lag=0, save=True)
+pipeline_multiple_lag(30, 0, 'PCA', 'PCA', cancer_type='C16', lag=0, save=True)
