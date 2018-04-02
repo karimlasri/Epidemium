@@ -242,17 +242,14 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
     elif model_name == "grid_random_forest":
 
         rf = RandomForestRegressor()
-        # specify parameters and distributions to sample from
-        param_dist = {"max_depth": [None,15,20,30,40,50],
-                      "max_features": sp_randint(1, 50),
-                      "min_samples_split": sp_randint(5, 20),
-                      "min_samples_leaf": sp_randint(1, 5),
+        param_grid = {"max_depth": [None,15,20,30,40,50],
+                      "max_features": [10, 20, 30, 50],
+                      "min_samples_split": [5, 10, 20],
+                      "min_samples_leaf": [1, 2, 3, 4, 5],
                       "bootstrap": [True, False],
                       "criterion": ["mae", "mse"]}
 
-        # run randomized search
-        n_iter_search = 50
-        model = GridSearchCV(rf, param_distributions=param_dist)
+        model = GridSearchCV(rf, param_grid=param_grid)
 
         model.fit(X_train, Y_train)
 
@@ -281,6 +278,22 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         report(model.cv_results_, 5)
         top5 = report_export(model.cv_results_, 5)
 
+    elif model_name == "random_forest_features":
+
+        model = RandomForestRegressor(criterion="mae", max_features=40, max_depth=32, min_samples_leaf=2, min_samples_split=6, bootstrap=False)
+
+        model.fit(X_train, Y_train)
+
+        features=[]
+
+        for i in range(len(model.feature_importances_)):
+            features+=[[str(list(X.columns.values)[i]), model.feature_importances_[i]]]
+        print(features)
+        features.sort(key=lambda x: x[1], reverse=True)
+        print(features)
+
+        write_csv('feature_importance'+name, features)
+
 
 
     #Metrics
@@ -300,33 +313,33 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         else:
             dico[country] += [(year, true_mor)]
 
-    X_other = X_lag[['area', 'year', 'TOTAL_POP']]
-    X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
-    Y_lag = model.predict(X_lag)
-    X_lag['area'] = X_other['area']
-    X_lag['year'] = X_other['year']
-    X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
-    dicolag = {}
-    for i in range(len(X_lag)):
-        country = X_values.iloc[i]['area']
-        year = int(X_values.iloc[i]['year'])
-        true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
-        if country not in dicolag.keys():
-            dicolag[country] = [(year, true_mor)]
-        else:
-            dicolag[country] += [(year, true_mor)]
-
-    for k, v in dico.items():
-        if len(v) > 1 :
-            v.sort(key = lambda x : x[0])
-        years = [year for year, _ in v]
-        mors = [mor for _, mor in v]
-        plt.scatter(years, mors, c='b')
-        if k in dicolag.keys():
-            v_lag = dicolag[k]
-            years_lag = [year for year, _ in v_lag]
-            mors_lag = [mor for _, mor in v_lag]
-            plt.scatter(years_lag, mors_lag, c='r')
+    # X_other = X_lag[['area', 'year', 'TOTAL_POP']]
+    # X_lag = X_lag.drop(columns=['area', 'year', 'TOTAL_POP'], axis=1)
+    # Y_lag = model.predict(X_lag)
+    # X_lag['area'] = X_other['area']
+    # X_lag['year'] = X_other['year']
+    # X_lag['TOTAL_POP'] = X_other['TOTAL_POP']
+    # dicolag = {}
+    # for i in range(len(X_lag)):
+    #     country = X_values.iloc[i]['area']
+    #     year = int(X_values.iloc[i]['year'])
+    #     true_mor = Y_lag[i] * X_lag.iloc[i]['TOTAL_POP']
+    #     if country not in dicolag.keys():
+    #         dicolag[country] = [(year, true_mor)]
+    #     else:
+    #         dicolag[country] += [(year, true_mor)]
+    #
+    # for k, v in dico.items():
+    #     if len(v) > 1 :
+    #         v.sort(key = lambda x : x[0])
+    #     years = [year for year, _ in v]
+    #     mors = [mor for _, mor in v]
+    #     plt.scatter(years, mors, c='b')
+    #     if k in dicolag.keys():
+    #         v_lag = dicolag[k]
+    #         years_lag = [year for year, _ in v_lag]
+    #         mors_lag = [mor for _, mor in v_lag]
+    #         plt.scatter(years_lag, mors_lag, c='r')
         # if len(years)>3:
         #     x_new = np.linspace(years[0], years[len(years)-1], 300)
         #     # print(years)
@@ -334,8 +347,8 @@ def predict_mortality(name, model_name, cancer_type, test_size, developing_count
         #     # print(x_new)
         #     mors_smooth = spline(years, mors, x_new)
         #     plt.plot(x_new, mors_smooth)
-        plt.savefig('../plots/evolution_per_country/' + k + '.png')
-        plt.close()
+        # plt.savefig('../plots/' + k + '.png')
+        # plt.close()
 
 
 
@@ -412,7 +425,7 @@ def remove_outliers(df):
     d = {col_name: df[col_name] for col_name in df.columns.values}
     df = pd.DataFrame(data=d)
     df = df.reset_index(drop=True)
-    outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1982), ('Honduras', 1983), ('Jamaica', 1968), ('Jamaica', 1969), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Pakistan', 1993), ('Pakistan', 1994), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002), ('Azerbaijan', 2003), ('Grenada', 1974), ('Grenada', 1975), ('Grenada', 1976), ('Grenada', 1977), ('Guadeloupe', 1971), ('Guadeloupe', 1972), ('Guadeloupe', 1973), ('Guadeloupe', 1976), ('Guadeloupe', 1977), ('Guadeloupe', 1978), ('Guadeloupe', 1979), ('Guadeloupe', 1980), ('San Marino', 2011), ('San Marino', 2012), ('San Marino', 2013), ('San Marino', 2014), ('San Marino', 2015)]
+    outliers = [('Brazil', 1977), ('Brazil', 1978), ('Colombia', 1981), ('Haiti', 1981), ('Haiti', 1983), ('Honduras', 1983), ('Jamaica', 1970), ('Jamaica', 1971), ('Jamaica', 1975), ('Portugal', 2004), ('Portugal', 2005), ('Puerto Rico', 1979), ('Bolivia', 2002)]
     for i in range(df.shape[0]):
         for outlier in outliers:
             if df.iloc[i]['area'] == outlier[0] and df.iloc[i]['year'] == outlier[1]:
@@ -493,7 +506,4 @@ def lag_X_Y(df):
     Y = df.loc[df['relative_mortality'] != 0].relative_mortality
     return X_lag, X, Y
 
-PATH_dataset = '../datasets/base_datasets/mortality_clean_aggregate'
-df = pd.read_csv(PATH_dataset + ".csv")
-df = remove_outliers(df)
-df.to_csv('../datasets/clean_datasets/mortality_clean.csv')
+predict_mortality("ALL_MV50_VT_Merged", "random_forest_features", "C16", 0.33)
