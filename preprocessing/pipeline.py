@@ -205,9 +205,11 @@ def pipeline_multiple_lag(mv_before=0, mv_after=0, dimred_type_before='', dimred
         wb_processed = pipeline_single(wb_clean, mv_before, dimred_type_before, lag)
         fao_processed = pipeline_single(fao_clean, mv_before, dimred_type_before, lag)
 
-    clean_mortality_outliers()
-    data_mortality = pd.read_csv('../datasets/clean_datasets/mortality_clean.csv')
-
+    try:
+        data_mortality = pd.read_csv('../datasets/clean_datasets/mortality_clean.csv')
+    except FileNotFoundError:
+        clean_mortality_outliers()
+        data_mortality = pd.read_csv('../datasets/clean_datasets/mortality_clean.csv')
 
     if lag != 0:
         wb_processed['year'] = wb_processed['year'] + lag
